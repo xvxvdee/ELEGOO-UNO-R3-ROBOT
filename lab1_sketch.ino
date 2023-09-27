@@ -1,14 +1,11 @@
 int STBY=3; //standby power system and it must be high for the motor control board to be enabled
-// int PWMA=5; //must be high for the right wheels to be enabled
-// int PWMB=6; //must be high for the left wheels to be enabled
 int BIN1=8; //high for forward movement and low for backward movement
 int AIN1=7; // high for forward movement and low for backward movement
 int PWMAR=10; // right motors A pin
 int PWMBR=9; // right motors B pin
 int PWMAL=5; // left motors A pin
 int PWMBL=6; // left motors B pin
-//int delayTime=3000;
-int high = 100;
+int high = 80;
 int low = 0;
 int trigPinL = 13; // Connect the Trig pin of the left Ultrasonic Sensor to pin 9 on Arduino
 int echoPinL = 12; // Connect the Echo pin of the left Ultrasonic Sensor to pin 10 on Arduino
@@ -21,20 +18,10 @@ void setup () {
   pinMode (AIN1, OUTPUT);
   pinMode (BIN1, OUTPUT);
   pinMode (STBY, OUTPUT);
-  // pinMode (PWMA, OUTPUT);
-  // pinMode (PWMB, OUTPUT);
   pinMode(PWMAR, OUTPUT); 
   pinMode(PWMBR, OUTPUT); 
   pinMode (PWMAL, OUTPUT);
   pinMode (PWMBL, OUTPUT);
-
-  // digitalWrite (PWMA, HIGH);
-  // digitalWrite (PWMB, HIGH);
-  // digitalWrite(PWM2A, HIGH); 
-  // digitalWrite(PWM2B, HIGH); 
-  // digitalWrite(AIN2, HIGH);
-  // digitalWrite(BIN2, HIGH);
-
 
   //Adjust Speed
   analogWrite(PWMAR, high); 
@@ -73,20 +60,21 @@ void loop () {
   Serial.print("Distance Left----: ");
   Serial.println(distanceL);  // Tools>Serial Monitor
 
-  if (distanceR > 40) {
+  if (distanceR > 40 && distanceL > 40) {
     Backward();
     delay(300);
-    Stop();
-    delay(1000);
+    Right();
+    delay(1200);
+  } else if (distanceR > 40) {
+    Backward();
+    delay(300);
     Left();
-    delay(500);
+    delay(750);
   } else if (distanceL > 40) {
     Backward();
     delay(300);
-    Stop();
-    delay(1000);
     Right();
-    delay(500);
+    delay(750);
   }
   else {
     Forward();
@@ -95,14 +83,6 @@ void loop () {
 }
 
 void Right () {
-  // digitalWrite (AIN1, HIGH);
-  // digitalWrite (BIN1, LOW); // Move
-
-  // digitalWrite(PWM2A, LOW); // right wheels foreward
-  // digitalWrite(PWM2B, HIGH); 
-  // digitalWrite(AIN2, LOW); // left wheels backwards
-  // digitalWrite(BIN2, HIGH);
-
   analogWrite(PWMAR, high); // right wheels backwards
   analogWrite(PWMBR, low); 
   analogWrite(PWMAL, high);  // left wheels forward
@@ -111,14 +91,6 @@ void Right () {
 }
 
 void Left () {
-  // digitalWrite (AIN1, LOW);
-  // digitalWrite (BIN1, HIGH); // Move
-
-  // digitalWrite(AIN2, HIGH);  // left wheels forward
-  // digitalWrite(BIN2, LOW); 
-  // digitalWrite(PWM2A, HIGH); // right wheels backwards
-  // digitalWrite(PWM2B, LOW); 
-
   analogWrite(PWMAR, low); // right wheels forward
   analogWrite(PWMBR, high); 
   analogWrite(PWMAL, low);  // left wheels backwards
@@ -128,38 +100,19 @@ void Left () {
 }
 
 void Forward () {
-  // digitalWrite (AIN1, HIGH);
-  // digitalWrite (BIN1, HIGH); // Move
-  // digitalWrite(PWM2A, LOW); // right wheels foreward
-  // digitalWrite(PWM2B, HIGH); 
   analogWrite(PWMAR, low); // right wheels forward
   analogWrite(PWMBR, high); 
-  // digitalWrite(AIN2, HIGH);  // left wheels forward
-  // digitalWrite(BIN2, LOW); 
   analogWrite(PWMAL, high);  // left wheels forward
   analogWrite(PWMBL, low); 
   digitalWrite (STBY, HIGH);
-  // delay (delayTime); // Stationary
-  // digitalWrite (STBY, LOW);
-  // delay (delayTime);
 }
 
 void Backward () {
-  // digitalWrite (AIN1, LOW);
-  // digitalWrite (BIN1, LOW); // Move
-
-  // digitalWrite(PWM2A, HIGH); // right wheels backwards
-  // digitalWrite(PWM2B, LOW); 
-  // digitalWrite(AIN2, LOW); // left wheels backwards
-  // digitalWrite(BIN2, HIGH);
   analogWrite(PWMAR, high); // right wheels backwards
   analogWrite(PWMBR, low); 
   analogWrite(PWMAL, low);  // left wheels backwards
   analogWrite(PWMBL, high); 
   digitalWrite (STBY, HIGH);
-  // delay (delayTime); // Stationary
-  // digitalWrite (STBY, LOW);
-  // delay (delayTime);
 }
 
 void Stop () {
