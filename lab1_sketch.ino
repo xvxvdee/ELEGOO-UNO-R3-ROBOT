@@ -11,7 +11,13 @@ int trigPinL = 13; // Connect the Trig pin of the left Ultrasonic Sensor to pin 
 int echoPinL = 12; // Connect the Echo pin of the left Ultrasonic Sensor to pin 10 on Arduino
 int trigPinR = 8; // Connect the Trig pin of the right Ultrasonic Sensor to pin 8 on Arduino
 int echoPinR = 7; // Connect the Echo pin of the right Ultrasonic Sensor to pin 7 on Arduino
-  long durationR, distanceR, durationL, distanceL;
+int trigPinF = 3; // Connect the Trig pin of the front-facing Ultrasonic Sensor to pin 3 on Arduino
+int echoPinF = 4; // Connect the Echo pin of the front-facing Ultrasonic Sensor to pin 4 on Arduino
+int echoPinFR = A0; // Connect the Trig pin of the right front-facing Ultrasonic Sensor to pin A0 on Arduino
+int trigPinFR = A1; // Connect the Echo pin of the right front-facing Ultrasonic Sensor to pin A1 on Arduino
+int echoPinFL = A2; // Connect the Trig pin of the left front-facing Ultrasonic Sensor to pin A0 on Arduino
+int trigPinFL = A3; // Connect the Echo pin of the left front-facing Ultrasonic Sensor to pin A1 on Arduino
+  long durationR, distanceR, durationL, distanceL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL;
 void setup () {
   Serial.begin(9600);   // initialize the serial communications:
 
@@ -34,6 +40,12 @@ void setup () {
   pinMode(echoPinL, INPUT);
   pinMode(trigPinR, OUTPUT);
   pinMode(echoPinR, INPUT);
+  pinMode(trigPinF, OUTPUT);
+  pinMode(echoPinF, INPUT);
+  pinMode(trigPinFR, OUTPUT);
+  pinMode(echoPinFR, INPUT);
+  pinMode(trigPinFL, OUTPUT);
+  pinMode(echoPinFL, INPUT);
   int delayTime = 200 ;
 }
 
@@ -54,13 +66,59 @@ void loop () {
   digitalWrite(trigPinL, LOW);
   durationL = pulseIn(echoPinL, HIGH);
   distanceL = (durationL/2) / 29.1;
+
+  digitalWrite(trigPinF, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(trigPinF, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(trigPinF, LOW);
+  durationF = pulseIn(echoPinF, HIGH);
+  distanceF = (durationF/2) / 29.1;
+
+  digitalWrite(trigPinFR, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(trigPinFR, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(trigPinFR, LOW);
+  durationFR = pulseIn(echoPinFR, HIGH);
+  distanceFR = (durationFR/2) / 29.1;
+
+  digitalWrite(trigPinFL, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(trigPinFL, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(trigPinFL, LOW);
+  durationFL = pulseIn(echoPinFL, HIGH);
+  distanceFL = (durationFL/2) / 29.1;
   
   Serial.print("Distance Right--: ");
   Serial.println(distanceR);  // Tools>Serial Monitor
   Serial.print("Distance Left----: ");
   Serial.println(distanceL);  // Tools>Serial Monitor
+  Serial.print("Distance Front----: ");
+  Serial.println(distanceF);  // Tools>Serial Monitor
+  Serial.print("Distance Front Right----: ");
+  Serial.println(distanceFR);  // Tools>Serial Monitor
+  Serial.print("Distance Front Left----: ");
+  Serial.println(distanceFL);  // Tools>Serial Monitor
 
-  if (distanceR > 40 && distanceL > 40) {
+
+  if (distanceF <= 15) {
+    Backward();
+    delay(300);
+    Right();
+    delay(1200);
+  } else if (distanceFR <=15) {
+    Backward();
+    delay(300);
+    Left();
+    delay(500);
+  } else if (distanceFL <= 15) {
+    Backward();
+    delay(300);
+    Right();
+    delay(500);
+  } else if (distanceR > 40 && distanceL > 40) {
     Backward();
     delay(300);
     Right();
