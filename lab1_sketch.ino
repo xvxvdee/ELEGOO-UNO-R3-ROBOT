@@ -15,9 +15,11 @@ int trigPinF = 3; // Connect the Trig pin of the front-facing Ultrasonic Sensor 
 int echoPinF = 4; // Connect the Echo pin of the front-facing Ultrasonic Sensor to pin 4 on Arduino
 int echoPinFR = A0; // Connect the Trig pin of the right front-facing Ultrasonic Sensor to pin A0 on Arduino
 int trigPinFR = A1; // Connect the Echo pin of the right front-facing Ultrasonic Sensor to pin A1 on Arduino
-int echoPinFL = A2; // Connect the Trig pin of the left front-facing Ultrasonic Sensor to pin A0 on Arduino
-int trigPinFL = A3; // Connect the Echo pin of the left front-facing Ultrasonic Sensor to pin A1 on Arduino
-  long durationR, distanceR, durationL, distanceL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL;
+int echoPinFL = A2; // Connect the Trig pin of the left front-facing Ultrasonic Sensor to pin A2 on Arduino
+int trigPinFL = A3; // Connect the Echo pin of the left front-facing Ultrasonic Sensor to pin A3 on Arduino
+int echoPinB = A4; // Connect the Trig pin of the left front-facing Ultrasonic Sensor to pin A4 on Arduino
+int trigPinB = A5; // Connect the Echo pin of the left front-facing Ultrasonic Sensor to pin A5 on Arduino
+  long durationR, distanceR, durationL, distanceL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL, durationB, distanceB;
 void setup () {
   Serial.begin(9600);   // initialize the serial communications:
 
@@ -46,50 +48,72 @@ void setup () {
   pinMode(echoPinFR, INPUT);
   pinMode(trigPinFL, OUTPUT);
   pinMode(echoPinFL, INPUT);
+  pinMode(trigPinB, OUTPUT);
+  pinMode(echoPinB, INPUT);
   int delayTime = 200 ;
 }
 
 void loop () {
   // Add this code where you want to read from the sensor
-  digitalWrite(trigPinR, LOW);  
-  delayMicroseconds(2); 
-  digitalWrite(trigPinR, HIGH);
-  delayMicroseconds(10); 
-  digitalWrite(trigPinR, LOW);
-  durationR = pulseIn(echoPinR, HIGH);
-  distanceR = (durationR/2) / 29.1;
+  // digitalWrite(trigPinR, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinR, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinR, LOW);
+  // durationR = pulseIn(echoPinR, HIGH);
+  // distanceR = (durationR/2) / 29.1;
 
-  digitalWrite(trigPinL, LOW);  
-  delayMicroseconds(2); 
-  digitalWrite(trigPinL, HIGH);
-  delayMicroseconds(10); 
-  digitalWrite(trigPinL, LOW);
-  durationL = pulseIn(echoPinL, HIGH);
-  distanceL = (durationL/2) / 29.1;
+  distanceR = findDistance(trigPinR, echoPinR);
 
-  digitalWrite(trigPinF, LOW);  
-  delayMicroseconds(2); 
-  digitalWrite(trigPinF, HIGH);
-  delayMicroseconds(10); 
-  digitalWrite(trigPinF, LOW);
-  durationF = pulseIn(echoPinF, HIGH);
-  distanceF = (durationF/2) / 29.1;
+  // digitalWrite(trigPinL, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinL, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinL, LOW);
+  // durationL = pulseIn(echoPinL, HIGH);
+  // distanceL = (durationL/2) / 29.1;
 
-  digitalWrite(trigPinFR, LOW);  
-  delayMicroseconds(2); 
-  digitalWrite(trigPinFR, HIGH);
-  delayMicroseconds(10); 
-  digitalWrite(trigPinFR, LOW);
-  durationFR = pulseIn(echoPinFR, HIGH);
-  distanceFR = (durationFR/2) / 29.1;
+  distanceL = findDistance(trigPinL, echoPinL);
 
-  digitalWrite(trigPinFL, LOW);  
-  delayMicroseconds(2); 
-  digitalWrite(trigPinFL, HIGH);
-  delayMicroseconds(10); 
-  digitalWrite(trigPinFL, LOW);
-  durationFL = pulseIn(echoPinFL, HIGH);
-  distanceFL = (durationFL/2) / 29.1;
+  // digitalWrite(trigPinF, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinF, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinF, LOW);
+  // durationF = pulseIn(echoPinF, HIGH);
+  // distanceF = (durationF/2) / 29.1;
+
+  distanceF = findDistance(trigPinF, echoPinF);
+
+  // digitalWrite(trigPinFR, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinFR, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinFR, LOW);
+  // durationFR = pulseIn(echoPinFR, HIGH);
+  // distanceFR = (durationFR/2) / 29.1;
+
+  distanceFR = findDistance(trigPinFR, echoPinFR);
+
+  // digitalWrite(trigPinFL, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinFL, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinFL, LOW);
+  // durationFL = pulseIn(echoPinFL, HIGH);
+  // distanceFL = (durationFL/2) / 29.1;
+
+  distanceFL = findDistance(trigPinFL, echoPinFL);
+
+  // digitalWrite(trigPinB, LOW);  
+  // delayMicroseconds(2); 
+  // digitalWrite(trigPinB, HIGH);
+  // delayMicroseconds(10); 
+  // digitalWrite(trigPinB, LOW);
+  // durationB = pulseIn(echoPinB, HIGH);
+  // distanceB = (durationB/2) / 29.1;
+
+  distanceB = findDistance(trigPinB, echoPinB);
   
   Serial.print("Distance Right--: ");
   Serial.println(distanceR);  // Tools>Serial Monitor
@@ -101,19 +125,21 @@ void loop () {
   Serial.println(distanceFR);  // Tools>Serial Monitor
   Serial.print("Distance Front Left----: ");
   Serial.println(distanceFL);  // Tools>Serial Monitor
+  Serial.print("Distance Back----: ");
+  Serial.println(distanceB);  // Tools>Serial Monitor
 
 
-  if (distanceF <= 15) {
+  if (distanceF <= 20) {
     Backward();
     delay(300);
     Right();
     delay(1200);
-  } else if (distanceFR <=15) {
+  } else if (distanceFR <= 20) {
     Backward();
     delay(300);
     Left();
     delay(500);
-  } else if (distanceFL <= 15) {
+  } else if (distanceFL <= 20) {
     Backward();
     delay(300);
     Right();
@@ -123,12 +149,12 @@ void loop () {
     delay(300);
     Right();
     delay(1200);
-  } else if (distanceR > 40) {
+  } else if (distanceR > 40 || distanceR < 3) {
     Backward();
     delay(300);
     Left();
     delay(750);
-  } else if (distanceL > 40) {
+  } else if (distanceL > 40 || distanceL < 3) {
     Backward();
     delay(300);
     Right();
@@ -179,4 +205,14 @@ void Stop () {
   analogWrite(PWMAL, low);  // left wheels stop
   analogWrite(PWMBL, low); 
   digitalWrite (STBY, HIGH);
+}
+
+long findDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH);
+  return ((duration/2) / 29.1);
 }
