@@ -77,17 +77,17 @@ void loop () {
   Serial.print("Distance Back----: ");
   Serial.println(distanceB);  // Tools>Serial Monitor
 
-  if (distanceF <= 25) { // 30 might be too much
+  if (distanceF <= 15) { // 30 might be too much
     Backward();
     delay(300);
     Right();
     delay(1200);
-  } else if (distanceFR <= 25) {
+  } else if (distanceFR <= 20) {
     Backward();
     delay(300);
     Left();
     delay(500);
-  } else if (distanceFL <= 25) {
+  } else if (distanceFL <= 20) {
     Backward();
     delay(300);
     Right();
@@ -107,23 +107,23 @@ void loop () {
     delay(300);
     Right();
     delay(750);
-  }else if((distanceB < 3 || distanceB > 40) && distanceFR <= 25 ){
-    Forward();
-    delay(300);
-    Left();
-    delay(750);
-  }else if((distanceB < 3 || distanceB > 40) && distanceFL <= 25 ){
-    Forward();
-    delay(300);
-    Right();
-    delay(750);
   }
-  else if((distanceB < 3 || distanceB > 40) && distanceF <= 25 ){
-    Forward();
-    delay(300);
-    Right();
-    delay(750);
-  }
+  // else if(distanceB < 15 || distanceB > 100){
+  //   Left();
+  //   delay(750);
+  // }
+  //else if((distanceB < 15 || distanceB > 40) && distanceFL <= 25 ){
+  //   Forward();
+  //   delay(300);
+  //   Right();
+  //   delay(750);
+  // }
+  // else if((distanceB < 15 || distanceB > 40) && distanceF <= 25 ){
+  //   Forward();
+  //   delay(300);
+  //   Right();
+  //   delay(750);
+  // }
   else {
     Forward();
   }
