@@ -100,10 +100,10 @@ void loop () {
   // Serial.println(middle);
   // Serial.print("Right On--------:");
   // Serial.println(right);
-  // Serial.print("IR Right On--------:");
-  // Serial.println(IRRStatus);
-  // Serial.print("IR Left On--------:");
-  // Serial.println(IRLStatus);
+  Serial.print("IR Right On--------:");
+  Serial.println(IRRStatus);
+  Serial.print("IR Left On--------:");
+  Serial.println(IRLStatus);
 
 
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
@@ -158,11 +158,11 @@ void loop () {
   }
   else if(left) {
     SlightLeft();
-    delay(25);
+    delay(20);
   }
   else if (right) {
     SlightRight();
-    delay(25);
+    delay(20);
   }
   else if (middle && left && !right) {
     SlightLeft();
@@ -173,11 +173,8 @@ void loop () {
     delay(10);
   }
   else if (middle && left && right) {
-    Stop();
-    delay(750);
-  }
-  else if (middle && !left && !right) {
-    Forward();
+    Right();
+    delay(1000);
   }
   else {
     Forward();
