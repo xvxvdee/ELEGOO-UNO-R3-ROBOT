@@ -40,6 +40,7 @@ long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanc
 bool leftFlag = false;
 bool rightFlag = false;
 bool middleFlag = false;
+bool lineDetected = false;
 
 // Object Detection Ultrasonic Sensors
 NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
@@ -86,15 +87,17 @@ void loop () {
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
 
-  // Serial.print("IR Right On--------:");
-  // Serial.println(IRRStatus);
-  // Serial.print("IR Left On--------:");
-  // Serial.println(IRLStatus);
+  Serial.print("IR Right On--------:");
+  Serial.println(IRRStatus);
+  Serial.print("IR Left On--------:");
+  Serial.println(IRLStatus);
 
   // Object Avoidance --------------------
   distanceFR = sonarFR.ping_cm();
   distanceFL = sonarFL.ping_cm();
   distanceF = sonarF.ping_cm();
+
+  lineDetected = (left == HIGH || right == HIGH || middle == HIGH);
 
   // Serial.print("Distance Front ----: ");
   // Serial.println(distanceF);  
@@ -111,6 +114,98 @@ void loop () {
   Serial.print("Right On--------:");
   Serial.println(right);
 
+  // Edge Detection --------------------
+  // if (IRRStatus == HIGH && IRLStatus == HIGH) {
+  //   Backward();
+  //   delay(300);
+  //   Right();
+  //   delay(750);
+  // } else if (IRRStatus == HIGH) {
+  //   Backward();
+  //   delay(300);
+  //   Left();
+  //   delay(300);
+  // } else if (IRLStatus == HIGH) {
+  //   Backward();
+  //   delay(300);
+  //   Right();
+  //   delay(300);
+  // } 
+
+  // // Object Avoidance --------------------
+  // else if (distanceF <= 15 && distanceF != 0) { 
+  //   Right();
+  //   delay(750);
+  // } 
+  // else if (distanceFR <= 12.5 && distanceFR != 0) {
+  //   Left();
+  //   delay(300);
+  // } 
+  // else if (distanceFL <= 12.5 && distanceFL != 0) {
+  //   Right();
+  //   delay(300);
+  // }
+
+  ObjectDetection(IRRStatus, IRLStatus, distanceF, distanceFR, distanceFL);
+
+  // Line Following --------------------
+  // else if(left) {
+  //   SlightLeft();
+  // }
+  // else if (right) {
+  //   SlightRight();
+  // }
+  // else if (middle && left && !right) {
+  //   SlightLeft();
+  // }
+  // else if (middle && !left && right) {
+  //   SlightRight();
+  // }
+  // else if (middle && left && right) {
+  //   Right();
+  // }
+  // Possible Changes
+  if(middle){
+    Forward();
+  }
+  if(left) {
+    operationStartTime=millis();
+    SlightLeft();
+    leftFlag = true;
+  }
+  if(leftFlag){
+     tempTime = millis();
+        if(tempTime >= operationStartTime + offset){
+            do{
+              SlightLeft();
+              // if(digitalRead(A4)==LOW && digitalRead(2)==LOW && digitalRead(A5)==LOW) break;
+            }while(digitalRead(A5)==LOW);
+            leftFlag = false;
+       }
+  }
+  if(right){
+    operationStartTime=millis();
+    SlightRight();
+    rightFlag = true;
+  }
+  if(rightFlag){
+     tempTime = millis();
+        if(tempTime >= operationStartTime + offset){
+          do{
+            SlightRight();
+            // if(digitalRead(A4)==LOW && digitalRead(2)==LOW && digitalRead(A5)==LOW) break;
+          }while(digitalRead(A5)==LOW);
+          rightFlag = false;
+        }
+  }
+  
+  // Forward --------------------
+  else {
+    Forward();
+  }
+}
+
+void ObjectDetection(int IRRStatus, int IRLStatus, long distanceF, long distanceFR, long distanceFL) {
   // Edge Detection --------------------
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
     Backward();
@@ -141,60 +236,6 @@ void loop () {
   else if (distanceFL <= 12.5 && distanceFL != 0) {
     Right();
     delay(300);
-  }
-
-  // Line Following --------------------
-  else if(left) {
-    SlightLeft();
-  }
-  else if (right) {
-    SlightRight();
-  }
-  else if (middle && left && !right) {
-    SlightLeft();
-  }
-  else if (middle && !left && right) {
-    SlightRight();
-  }
-  else if (middle && left && right) {
-    Right();
-  }
-  // Possible Changes
-  if(middle){
-    Forward();
-  }
-  if(left) {
-    operationStartTime=millis();
-    SlightLeft();
-    leftFlag = true;
-  }
-  if(leftFlag){
-     tempTime = millis();
-        if(tempTime >= operationStartTime + offset){
-            do{
-              SlightLeft();
-            }while(digitalRead(A5)==LOW);
-            leftFlag = false;
-       }
-  }
-  if(right){
-    operationStartTime=millis();
-    SlightRight();
-    rightFlag = true;
-  }
-  if(rightFlag){
-     tempTime = millis();
-        if(tempTime >= operationStartTime + offset){
-          do{
-            SlightRight();
-          }while(digitalRead(A5)==LOW);
-          rightFlag = false;
-        }
-  }
-  
-  // Forward --------------------
-  else {
-    Forward();
   }
 }
 
