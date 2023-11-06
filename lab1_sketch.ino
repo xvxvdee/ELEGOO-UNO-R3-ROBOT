@@ -6,6 +6,7 @@
 #define left digitalRead(A4)
 #define middle digitalRead(A5)
 #define right digitalRead(2)
+
 // int left = A4;
 // int right = A5;
 // int middle = 2;
@@ -36,7 +37,9 @@ int echoPinFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
 int trigPinFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
 long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL;
 
-bool onLine = false;
+bool leftFlag = false;
+bool rightFlag = false;
+bool middleFlag = false;
 
 // Object Detection Ultrasonic Sensors
 NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
@@ -74,6 +77,11 @@ void setup () {
 }
 
 void loop () {
+
+  int offset = 1;
+  unsigned long operationStartTime;
+  unsigned long tempTime;
+
   // Edge Detection --------------------
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
@@ -151,7 +159,39 @@ void loop () {
   else if (middle && left && right) {
     Right();
   }
-
+  // Possible Changes
+  if(middle){
+    Forward();
+  }
+  if(left) {
+    operationStartTime=millis();
+    SlightLeft();
+    leftFlag = true;
+  }
+  if(leftFlag){
+     tempTime = millis();
+        if(tempTime >= operationStartTime + offset){
+            do{
+              SlightLeft();
+            }while(digitalRead(A5)==LOW);
+            leftFlag = false;
+       }
+  }
+  if(right){
+    operationStartTime=millis();
+    SlightRight();
+    rightFlag = true;
+  }
+  if(rightFlag){
+     tempTime = millis();
+        if(tempTime >= operationStartTime + offset){
+          do{
+            SlightRight();
+          }while(digitalRead(A5)==LOW);
+          rightFlag = false;
+        }
+  }
+  
   // Forward --------------------
   else {
     Forward();
