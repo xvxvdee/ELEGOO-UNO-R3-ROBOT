@@ -6,9 +6,6 @@
 #define left digitalRead(A4)
 #define middle digitalRead(A5)
 #define right digitalRead(2)
-// int left = A4;
-// int right = A5;
-// int middle = 2;
 
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
 
@@ -19,7 +16,7 @@ int PWMAL=5; // Left motors A pin
 int PWMBL=6; // Left motors B pin
 
 // Turning Speed
-int high = 68;
+int high = 70;
 int turnHigh = 90;
 int low = 0;
 
@@ -36,7 +33,12 @@ int echoPinFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
 int trigPinFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
 long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL;
 
-bool onLine = false;
+// Flags
+bool edgeDetectionFlag = false;
+bool objectDetectionFlag = false;
+bool leftFlag = false;
+bool rightFlag = false;
+bool middleFlag = false;
 
 // Object Detection Ultrasonic Sensors
 NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
@@ -69,31 +71,33 @@ void setup () {
   // IR Sensors
   pinMode(IRR, INPUT);
   pinMode(IRL, INPUT);
-
-  int delayTime = 200 ;
 }
 
 void loop () {
+  int offset = 1;
+  unsigned long operationStartTime;
+  unsigned long tempTime;
+
   // Edge Detection --------------------
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
 
-  // Serial.print("IR Right On--------:");
-  // Serial.println(IRRStatus);
-  // Serial.print("IR Left On--------:");
-  // Serial.println(IRLStatus);
+  Serial.print("IR Right On--------:");
+  Serial.println(IRRStatus);
+  Serial.print("IR Left On--------:");
+  Serial.println(IRLStatus);
 
   // Object Avoidance --------------------
   distanceFR = sonarFR.ping_cm();
   distanceFL = sonarFL.ping_cm();
   distanceF = sonarF.ping_cm();
 
-  // Serial.print("Distance Front ----: ");
-  // Serial.println(distanceF);  
-  // Serial.print("Distance Front Right----: ");
-  // Serial.println(distanceFR);  
-  // Serial.print("Distance Front Left----: ");
-  // Serial.println(distanceFL);  
+  Serial.print("Distance Front ----: ");
+  Serial.println(distanceF);  
+  Serial.print("Distance Front Right----: ");
+  Serial.println(distanceFR);  
+  Serial.print("Distance Front Left----: ");
+  Serial.println(distanceFL);  
 
   // Line Following --------------------
   Serial.print("Left On--------:");
@@ -105,16 +109,19 @@ void loop () {
 
   // Edge Detection --------------------
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
+    EdgeDetectionMode();
     Backward();
     delay(300);
     Right();
     delay(750);
   } else if (IRRStatus == HIGH) {
+    EdgeDetectionMode();
     Backward();
     delay(300);
     Left();
     delay(300);
   } else if (IRLStatus == HIGH) {
+    EdgeDetectionMode();
     Backward();
     delay(300);
     Right();
@@ -123,39 +130,71 @@ void loop () {
 
   // Object Avoidance --------------------
   else if (distanceF <= 15 && distanceF != 0) { 
+    ObjectAvoidanceMode();
     Right();
     delay(750);
   } 
-  else if (distanceFR <= 12.5 && distanceFR != 0) {
+  else if (distanceFR <= 13 && distanceFR != 0) {
+    ObjectAvoidanceMode();
     Left();
     delay(300);
   } 
-  else if (distanceFL <= 12.5 && distanceFL != 0) {
+  else if (distanceFL <= 13 && distanceFL != 0) {
+    ObjectAvoidanceMode();
     Right();
     delay(300);
   }
 
   // Line Following --------------------
-  else if(left) {
-    SlightLeft();
+  else if (middle && !right && !left) {
+    Forward();
   }
-  else if (right) {
-    SlightRight();
+  else if (middle && right && left || middle && left || left) {
+    operationStartTime=millis();
+    leftFlag = true;
   }
-  else if (middle && left && !right) {
-    SlightLeft();
+  else if (middle && right || right) {
+    operationStartTime=millis();
+    rightFlag = true;
   }
-  else if (middle && !left && right) {
-    SlightRight();
-  }
-  else if (middle && left && right) {
-    Right();
-  }
-
   // Forward --------------------
   else {
     Forward();
   }
+
+  // Line Following Flags -------
+  if (!objectDetectionFlag && !edgeDetectionFlag) {
+    if (leftFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(A5)==LOW) { SlightLeft(); }
+        else { leftFlag = false; }
+      }
+    }
+
+    if (rightFlag) {
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(A5)==LOW) { SlightRight(); }
+        else { rightFlag = false; }
+      }
+    }
+  }
+  
+  // Resetting Flags ---------
+  if (objectDetectionFlag) { objectDetectionFlag = false;}
+  if (edgeDetectionFlag) { edgeDetectionFlag = false; }
+}
+
+void EdgeDetectionMode () {
+  edgeDetectionFlag = true;
+  objectDetectionFlag = false;
+  leftFlag = rightFlag = false;
+}
+
+void ObjectAvoidanceMode () {
+  objectDetectionFlag = true;
+  leftFlag = rightFlag = false;
 }
 
 void Right () {
