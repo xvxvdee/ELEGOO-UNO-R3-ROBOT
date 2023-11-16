@@ -1,11 +1,17 @@
 #include <NewPing.h>
+#include <PCF8574.h>
 
 #define MAX_DISTANCE 5000
 
+// Line Following Pins
+#define leftIRPin 7
+#define middleIRPin 13
+#define rightIRPin 2
+
  // Line Following IR Sensors
-#define left digitalRead(A4)
-#define middle digitalRead(A5)
-#define right digitalRead(2)
+#define left digitalRead(leftIRPin) //red P2 7
+#define middle digitalRead(middleIRPin) //orange P1 13 NOW GREEN
+#define right digitalRead(rightIRPin)
 
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
 
@@ -16,13 +22,20 @@ int PWMAL=5; // Left motors A pin
 int PWMBL=6; // Left motors B pin
 
 // Turning Speed
-int high = 70;
-int turnHigh = 90;
+int high = 125;
+int turnHigh = 150;
 int low = 0;
 
 // Edge Detection IR Sensors
 int IRR = 8;
 int IRL = 12;
+
+// Flame IR Sensors
+uint8_t FIRR = P1;
+uint8_t FIRL = P2;
+uint8_t FIRM = P0;
+
+PCF8574 pcf8574(0x20);
 
 // Ultrasonic Sensors Trig and Echo Pins 
 int trigPinF = 3; // Trig pin of Front Ultrasonic Sensor to pin 3 
@@ -71,6 +84,17 @@ void setup () {
   // IR Sensors
   pinMode(IRR, INPUT);
   pinMode(IRL, INPUT);
+  pcf8574.pinMode(FIRL, INPUT);
+  pcf8574.pinMode(FIRR, INPUT);
+  pcf8574.pinMode(FIRM, INPUT);
+
+  // initialize IO Extender
+  if (pcf8574.begin()) {
+    Serial.println("OK");
+  } else {
+    Serial.println("KO");
+  }
+
 }
 
 void loop () {
@@ -82,30 +106,51 @@ void loop () {
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
 
-  Serial.print("IR Right On--------:");
-  Serial.println(IRRStatus);
-  Serial.print("IR Left On--------:");
-  Serial.println(IRLStatus);
+  // Serial.print("IR Right On--------:");
+  // Serial.println(IRRStatus);
+  // Serial.print("IR Left On--------:");
+  // Serial.println(IRLStatus);
+
+  // Flame Detection ---------------------
+  int FIRLStatus = pcf8574.digitalRead(FIRL);
+  int FIRRStatus = pcf8574.digitalRead(FIRR);
+  int FIRMStatus = pcf8574.digitalRead(FIRM);
+
+  Serial.print("IR FIRE LEFT On--------:");
+  Serial.println(FIRLStatus);
+  Serial.print("IR FIRE RIGHT On--------:");
+  Serial.println(FIRRStatus);
+  Serial.print("IR FIRE MIDDLE On--------:");
+  Serial.println(FIRMStatus);
+
+  // PCF8574::DigitalInput di = pcf8574.digitalReadAll();
+	// Serial.print(di.p0);
+	// Serial.print(" - ");
+	// Serial.print(di.p1);
+	// Serial.print(" - ");
+	// Serial.println(di.p2);
+	// Serial.print(" - ");
+	// Serial.println(di.p3);
 
   // Object Avoidance --------------------
   distanceFR = sonarFR.ping_cm();
   distanceFL = sonarFL.ping_cm();
   distanceF = sonarF.ping_cm();
 
-  Serial.print("Distance Front ----: ");
-  Serial.println(distanceF);  
-  Serial.print("Distance Front Right----: ");
-  Serial.println(distanceFR);  
-  Serial.print("Distance Front Left----: ");
-  Serial.println(distanceFL);  
+  // Serial.print("Distance Front ----: ");
+  // Serial.println(distanceF);  
+  // Serial.print("Distance Front Right----: ");
+  // Serial.println(distanceFR);  
+  // Serial.print("Distance Front Left----: ");
+  // Serial.println(distanceFL);  
 
   // Line Following --------------------
-  Serial.print("Left On--------:");
-  Serial.println(left);
-  Serial.print("Middle On--------:");
-  Serial.println(middle);
-  Serial.print("Right On--------:");
-  Serial.println(right);
+  // Serial.print("Left On--------:");
+  // Serial.println(left);
+  // Serial.print("Middle On--------:");
+  // Serial.println(middle);
+  // Serial.print("Right On--------:");
+  // Serial.println(right);
 
   // Edge Detection --------------------
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
@@ -167,7 +212,7 @@ void loop () {
     if (leftFlag){
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(A5)==LOW) { SlightLeft(); }
+        if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
         else { leftFlag = false; }
       }
     }
@@ -175,7 +220,7 @@ void loop () {
     if (rightFlag) {
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(A5)==LOW) { SlightRight(); }
+        if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
         else { rightFlag = false; }
       }
     }
@@ -189,12 +234,14 @@ void loop () {
 void EdgeDetectionMode () {
   edgeDetectionFlag = true;
   objectDetectionFlag = false;
-  leftFlag = rightFlag = false;
+  leftFlag = false;
+  rightFlag = false;
 }
 
 void ObjectAvoidanceMode () {
   objectDetectionFlag = true;
-  leftFlag = rightFlag = false;
+  leftFlag = false;
+  rightFlag = false;
 }
 
 void Right () {
