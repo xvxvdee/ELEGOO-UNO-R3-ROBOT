@@ -23,7 +23,7 @@ int PWMBL=6; // Left motors B pin
 
 // Turning Speed
 int high = 125;
-int turnHigh = 150;
+int turnHigh = 140;
 int low = 0;
 
 // Edge Detection IR Sensors
