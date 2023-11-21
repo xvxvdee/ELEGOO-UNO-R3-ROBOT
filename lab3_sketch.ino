@@ -9,9 +9,9 @@
 #define rightIRPin 2
 
  // Line Following IR Sensors
-#define left digitalRead(leftIRPin) //red P2 7
-#define middle digitalRead(middleIRPin) //orange P1 13 NOW GREEN
-#define right digitalRead(rightIRPin)
+#define leftLine digitalRead(leftIRPin) //red P2 7
+#define middleLine digitalRead(middleIRPin) //orange P1 13 NOW GREEN
+#define rightLine digitalRead(rightIRPin)
 
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
 
@@ -49,9 +49,14 @@ long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanc
 // Flags
 bool edgeDetectionFlag = false;
 bool objectDetectionFlag = false;
-bool leftFlag = false;
-bool rightFlag = false;
-bool middleFlag = false;
+bool lineDetectionFlag = false;
+bool fireDetectionFlag = false;
+bool leftLineFlag = false;
+bool rightLineFlag = false;
+bool middleLineFlag = false;
+bool leftFireFlag = false;
+bool rightFireFlag = false;
+bool middleFireFlag = false;
 
 // Object Detection Ultrasonic Sensors
 NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
@@ -146,11 +151,11 @@ void loop () {
 
   // Line Following --------------------
   // Serial.print("Left On--------:");
-  // Serial.println(left);
+  // Serial.println(leftLine);
   // Serial.print("Middle On--------:");
-  // Serial.println(middle);
+  // Serial.println(middleLine);
   // Serial.print("Right On--------:");
-  // Serial.println(right);
+  // Serial.println(rightLine);
 
   // Edge Detection --------------------
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
@@ -191,39 +196,86 @@ void loop () {
   }
 
   // Line Following --------------------
-  else if (middle && !right && !left) {
+  else if (middleLine && !rightLine && !leftLine) {
     Forward();
   }
-  else if (middle && right && left || middle && left || left) {
+  else if (middleLine && rightLine && leftLine || middleLine && leftLine || leftLine) {
     operationStartTime=millis();
-    leftFlag = true;
+    leftLineFlag = true;
   }
-  else if (middle && right || right) {
+  else if (middleLine && rightLine || rightLine) {
     operationStartTime=millis();
-    rightFlag = true;
+    rightLineFlag = true;
+  }
+  // Flame Detection 0 = detected and 1 = not -----------------
+  else if (!FIRMStatus) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    middleFireFlag = true;
+    // stop until the flame goes out
+  }
+  else if (!FIRRStatus) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    rightFireFlag = true;
+  }
+  else if (!FIRLStatus) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    leftFireFlag = true;
   }
   // Forward --------------------
   else {
     Forward();
   }
 
-  // Line Following Flags -------
-  if (!objectDetectionFlag && !edgeDetectionFlag) {
-    if (leftFlag){
+  // Line Following Flags (Turn until middle) -------
+  if (!objectDetectionFlag && !edgeDetectionFlag && !fireDetectionFlag) {
+    if (leftLineFlag){
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
         if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
-        else { leftFlag = false; }
+        else { leftLineFlag = false; }
       }
     }
 
-    if (rightFlag) {
+    if (rightLineFlag) {
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
         if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
-        else { rightFlag = false; }
+        else { rightLineFlag = false; }
       }
     }
+  }
+
+  // Flame Detection Flags
+  if (!objectDetectionFlag && !edgeDetectionFlag && fireDetectionFlag) {
+    if (middleFireFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (pcf8574.digitalRead(FIRM)==LOW) { Stop(); }
+        else { 
+          middleFireFlag = false; 
+          fireDetectionFlag = false;
+        }
+      }
+    }
+
+    // if (leftLineFlag){
+    //   tempTime = millis();
+    //   if (tempTime >= operationStartTime + offset) {
+    //     if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
+    //     else { leftLineFlag = false; }
+    //   }
+    // }
+
+    // if (rightLineFlag) {
+    //   tempTime = millis();
+    //   if (tempTime >= operationStartTime + offset) {
+    //     if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
+    //     else { rightLineFlag = false; }
+    //   }
+    // }
   }
   
   // Resetting Flags ---------
@@ -234,15 +286,25 @@ void loop () {
 void EdgeDetectionMode () {
   edgeDetectionFlag = true;
   objectDetectionFlag = false;
-  leftFlag = false;
-  rightFlag = false;
+  leftLineFlag = false;
+  rightLineFlag = false;
 }
 
 void ObjectAvoidanceMode () {
   objectDetectionFlag = true;
-  leftFlag = false;
-  rightFlag = false;
+  leftLineFlag = false;
+  rightLineFlag = false;
+  // why no middle line flag
 }
+
+void FireDetectionMode () {
+  objectDetectionFlag = false;
+  fireDetectionFlag = true;
+  // lineDetectionFlag = false;   CAN WE DO THIS???
+  leftLineFlag = false;
+  rightLineFlag = false;
+}
+
 
 void Right () {
   analogWrite(PWMAR, turnHigh); // Right wheels backwards
