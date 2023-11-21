@@ -104,6 +104,7 @@ void setup () {
 
 void loop () {
   int offset = 1;
+  int maxLineTurnDuration = 2000;
   unsigned long operationStartTime;
   unsigned long tempTime;
 
@@ -111,10 +112,10 @@ void loop () {
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
 
-  // Serial.print("IR Right On--------:");
-  // Serial.println(IRRStatus);
-  // Serial.print("IR Left On--------:");
-  // Serial.println(IRLStatus);
+  Serial.print("IR Right On--------:");
+  Serial.println(IRRStatus);
+  Serial.print("IR Left On--------:");
+  Serial.println(IRLStatus);
 
   // Flame Detection ---------------------
   int FIRLStatus = pcf8574.digitalRead(FIRL);
@@ -179,21 +180,21 @@ void loop () {
   } 
 
   // Object Avoidance --------------------
-  else if (distanceF <= 15 && distanceF != 0) { 
-    ObjectAvoidanceMode();
-    Right();
-    delay(750);
-  } 
-  else if (distanceFR <= 13 && distanceFR != 0) {
-    ObjectAvoidanceMode();
-    Left();
-    delay(300);
-  } 
-  else if (distanceFL <= 13 && distanceFL != 0) {
-    ObjectAvoidanceMode();
-    Right();
-    delay(300);
-  }
+  // else if (distanceF <= 15 && distanceF != 0) { 
+  //   ObjectAvoidanceMode();
+  //   Right();
+  //   delay(750);
+  // } 
+  // else if (distanceFR <= 13 && distanceFR != 0) {
+  //   ObjectAvoidanceMode();
+  //   Left();
+  //   delay(300);
+  // } 
+  // else if (distanceFL <= 13 && distanceFL != 0) {
+  //   ObjectAvoidanceMode();
+  //   Right();
+  //   delay(300);
+  // }
 
   // Line Following --------------------
   else if (middleLine && !rightLine && !leftLine) {
@@ -234,7 +235,7 @@ void loop () {
     if (leftLineFlag){
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightLeft(); }
         else { leftLineFlag = false; }
       }
     }
@@ -242,7 +243,7 @@ void loop () {
     if (rightLineFlag) {
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightRight(); }
         else { rightLineFlag = false; }
       }
     }
@@ -261,13 +262,27 @@ void loop () {
       }
     }
 
-    // if (leftLineFlag){
-    //   tempTime = millis();
-    //   if (tempTime >= operationStartTime + offset) {
-    //     if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
-    //     else { leftLineFlag = false; }
-    //   }
-    // }
+    if (leftFireFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (pcf8574.digitalRead(FIRM)==HIGH) { Left(); }
+        else { 
+          leftFireFlag = false; 
+          fireDetectionFlag = false;
+        }
+      }
+    }
+
+    if (rightFireFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (pcf8574.digitalRead(FIRM)==HIGH) { Right(); }
+        else { 
+          rightFireFlag = false; 
+          fireDetectionFlag = false;
+        }
+      }
+    }
 
     // if (rightLineFlag) {
     //   tempTime = millis();
