@@ -22,8 +22,8 @@ int PWMAL=5; // Left motors A pin
 int PWMBL=6; // Left motors B pin
 
 // Turning Speed
-int high = 125;
-int turnHigh = 140;
+int high = 115;
+int turnHigh = 130;
 int low = 0;
 
 // Edge Detection IR Sensors
@@ -104,7 +104,7 @@ void setup () {
 
 void loop () {
   int offset = 1;
-  int maxLineTurnDuration = 2000;
+  int maxLineTurnDuration = 3000;
   unsigned long operationStartTime;
   unsigned long tempTime;
 
@@ -112,10 +112,10 @@ void loop () {
   int IRRStatus = digitalRead(IRR);
   int IRLStatus = digitalRead(IRL);
 
-  Serial.print("IR Right On--------:");
-  Serial.println(IRRStatus);
-  Serial.print("IR Left On--------:");
-  Serial.println(IRLStatus);
+  // Serial.print("IR Right On--------:");
+  // Serial.println(IRRStatus);
+  // Serial.print("IR Left On--------:");
+  // Serial.println(IRLStatus);
 
   // Flame Detection ---------------------
   int FIRLStatus = pcf8574.digitalRead(FIRL);
@@ -143,12 +143,12 @@ void loop () {
   distanceFL = sonarFL.ping_cm();
   distanceF = sonarF.ping_cm();
 
-  // Serial.print("Distance Front ----: ");
-  // Serial.println(distanceF);  
-  // Serial.print("Distance Front Right----: ");
-  // Serial.println(distanceFR);  
-  // Serial.print("Distance Front Left----: ");
-  // Serial.println(distanceFL);  
+  Serial.print("Distance Front ----: ");
+  Serial.println(distanceF);  
+  Serial.print("Distance Front Right----: ");
+  Serial.println(distanceFR);  
+  Serial.print("Distance Front Left----: ");
+  Serial.println(distanceFL);  
 
   // Line Following --------------------
   // Serial.print("Left On--------:");
@@ -179,35 +179,6 @@ void loop () {
     delay(300);
   } 
 
-  // Object Avoidance --------------------
-  // else if (distanceF <= 15 && distanceF != 0) { 
-  //   ObjectAvoidanceMode();
-  //   Right();
-  //   delay(750);
-  // } 
-  // else if (distanceFR <= 13 && distanceFR != 0) {
-  //   ObjectAvoidanceMode();
-  //   Left();
-  //   delay(300);
-  // } 
-  // else if (distanceFL <= 13 && distanceFL != 0) {
-  //   ObjectAvoidanceMode();
-  //   Right();
-  //   delay(300);
-  // }
-
-  // Line Following --------------------
-  else if (middleLine && !rightLine && !leftLine) {
-    Forward();
-  }
-  else if (middleLine && rightLine && leftLine || middleLine && leftLine || leftLine) {
-    operationStartTime=millis();
-    leftLineFlag = true;
-  }
-  else if (middleLine && rightLine || rightLine) {
-    operationStartTime=millis();
-    rightLineFlag = true;
-  }
   // Flame Detection 0 = detected and 1 = not -----------------
   else if (!FIRMStatus) {
     operationStartTime=millis();
@@ -225,6 +196,37 @@ void loop () {
     FireDetectionMode();
     leftFireFlag = true;
   }
+
+  // Object Avoidance --------------------
+  else if (distanceF <= 10 && distanceF != 0) { 
+    ObjectAvoidanceMode();
+    Right();
+    delay(750);
+  } 
+  else if (distanceFR <= 10 && distanceFR != 0) {
+    ObjectAvoidanceMode();
+    Left();
+    delay(300);
+  } 
+  else if (distanceFL <= 10 && distanceFL != 0) {
+    ObjectAvoidanceMode();
+    Right();
+    delay(300);
+  }
+
+  // Line Following --------------------
+  else if (middleLine && !rightLine && !leftLine) {
+    Forward();
+  }
+  else if (middleLine && rightLine && leftLine || middleLine && leftLine || leftLine) {
+    operationStartTime=millis();
+    leftLineFlag = true;
+  }
+  else if (middleLine && rightLine || rightLine) {
+    operationStartTime=millis();
+    rightLineFlag = true;
+  }
+
   // Forward --------------------
   else {
     Forward();
@@ -283,14 +285,6 @@ void loop () {
         }
       }
     }
-
-    // if (rightLineFlag) {
-    //   tempTime = millis();
-    //   if (tempTime >= operationStartTime + offset) {
-    //     if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
-    //     else { rightLineFlag = false; }
-    //   }
-    // }
   }
   
   // Resetting Flags ---------
