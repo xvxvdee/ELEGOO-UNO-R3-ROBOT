@@ -33,7 +33,7 @@ int IRL = 12;
 // Flame IR Sensors
 uint8_t FIRR = P1;
 uint8_t FIRL = P2;
-uint8_t FIRM = P0;
+uint8_t FIRM = P3;
 
 PCF8574 pcf8574(0x20);
 
@@ -143,12 +143,12 @@ void loop () {
   distanceFL = sonarFL.ping_cm();
   distanceF = sonarF.ping_cm();
 
-  Serial.print("Distance Front ----: ");
-  Serial.println(distanceF);  
-  Serial.print("Distance Front Right----: ");
-  Serial.println(distanceFR);  
-  Serial.print("Distance Front Left----: ");
-  Serial.println(distanceFL);  
+  // Serial.print("Distance Front ----: ");
+  // Serial.println(distanceF);  
+  // Serial.print("Distance Front Right----: ");
+  // Serial.println(distanceFR);  
+  // Serial.print("Distance Front Left----: ");
+  // Serial.println(distanceFL);  
 
   // Line Following --------------------
   // Serial.print("Left On--------:");
@@ -179,19 +179,19 @@ void loop () {
     delay(300);
   } 
 
-  // Flame Detection 0 = detected and 1 = not -----------------
-  else if (!FIRMStatus) {
+  // Flame Detection LOW = detected -----------------
+  else if (FIRMStatus == LOW) {
     operationStartTime=millis();
     FireDetectionMode();
     middleFireFlag = true;
     // stop until the flame goes out
   }
-  else if (!FIRRStatus) {
+  else if (FIRRStatus == LOW) {
     operationStartTime=millis();
     FireDetectionMode();
     rightFireFlag = true;
   }
-  else if (!FIRLStatus) {
+  else if (FIRLStatus == LOW) {
     operationStartTime=millis();
     FireDetectionMode();
     leftFireFlag = true;
@@ -232,24 +232,28 @@ void loop () {
     Forward();
   }
 
-  // Line Following Flags (Turn until middle) -------
-  if (!objectDetectionFlag && !edgeDetectionFlag && !fireDetectionFlag) {
-    if (leftLineFlag){
-      tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightLeft(); }
-        else { leftLineFlag = false; }
-      }
-    }
+  // Serial.print("object detection--------:");
+  // Serial.println(objectDetectionFlag);
+  Serial.print("fire detection--------:");
+  Serial.println(fireDetectionFlag);
+  // Serial.print("line detection right--------:");
+  // Serial.println(rightLineFlag);
+  // Serial.print("line detection left--------:");
+  // Serial.println(leftLineFlag);
+  Serial.print("IR FIRE MIDDLE On--------:");
+  Serial.println(FIRMStatus);
+  Serial.print("IR FIRE MIDDLE Flag On--------:");
+  Serial.println(middleFireFlag);
 
-    if (rightLineFlag) {
-      tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightRight(); }
-        else { rightLineFlag = false; }
-      }
-    }
-  }
+  Serial.print("IR FIRE LEFT On--------:");
+  Serial.println(FIRLStatus);
+  Serial.print("IR FIRE LEFT Flag On--------:");
+  Serial.println(leftFireFlag);
+
+  Serial.print("IR FIRE RIGHT On--------:");
+  Serial.println(FIRRStatus);
+  Serial.print("IR FIRE RIGHT Flag On--------:");
+  Serial.println(rightFireFlag);
 
   // Flame Detection Flags
   if (!objectDetectionFlag && !edgeDetectionFlag && fireDetectionFlag) {
@@ -286,10 +290,30 @@ void loop () {
       }
     }
   }
+
+  // Line Following Flags (Turn until middle) -------
+  if (!objectDetectionFlag && !edgeDetectionFlag && !fireDetectionFlag) {
+    if (leftLineFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightLeft(); }
+        else { leftLineFlag = false; }
+      }
+    }
+
+    if (rightLineFlag) {
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightRight(); }
+        else { rightLineFlag = false; }
+      }
+    }
+  }
   
   // Resetting Flags ---------
   if (objectDetectionFlag) { objectDetectionFlag = false;}
   if (edgeDetectionFlag) { edgeDetectionFlag = false; }
+  // if (fireDetectionFlag) { fireDetectionFlag = false; }
 }
 
 void EdgeDetectionMode () {
@@ -312,6 +336,10 @@ void FireDetectionMode () {
   // lineDetectionFlag = false;   CAN WE DO THIS???
   leftLineFlag = false;
   rightLineFlag = false;
+}
+
+void LineDetectionMode () {
+  lineDetectionFlag = true;
 }
 
 
