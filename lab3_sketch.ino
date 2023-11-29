@@ -2,67 +2,77 @@
 #include <PCF8574.h>
 
 #define MAX_DISTANCE 5000
+int MAX_LINE_TURN_DURATION = 3000;
+int OFFSET = 1;
 
-// Line Following Pins
-#define leftIRPin 7
-#define middleIRPin 13
-#define rightIRPin 2
-
- // Line Following IR Sensors
-#define leftLine digitalRead(leftIRPin) //red P2 7
-#define middleLine digitalRead(middleIRPin) //orange P1 13 NOW GREEN
-#define rightLine digitalRead(rightIRPin)
-
+// AMR ---------------------------------------------------
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
-
 // Motors
 int PWMAR=10; // Right motors A pin
 int PWMBR=9; // Right motors B pin
 int PWMAL=5; // Left motors A pin
 int PWMBL=6; // Left motors B pin
-
 // Turning Speed
 int high = 115;
 int turnHigh = 130;
 int turnLow = 110;
 int low = 0;
 
-// Edge Detection IR Sensors
-int IRR = 8;
-int IRL = 12;
+// PINS -------------------------------------------------------------------------
+// Line Following - - - - - - - - - - - - - -
+#define PIN_lineL 7
+#define PIN_lineF 13
+#define PIN_lineR 2
+// //IR Sensors  
+// #define LINE_outputL 
+// #define LINE_outputF
+// #define LINE_outputR
 
-// Flame IR Sensors
-uint8_t FIRR = P1;
-uint8_t FIRL = P2;
-uint8_t FIRM = P3;
+// Edge Detection IR Sensors - - - - - - - - -
+int PIN_edgeR = 8;
+int PIN_edgeL = 12;
 
+// Flame IR Sensors - - - - - - - - - - - - - -
+uint8_t PIN_EXT_flameR = P1;
+uint8_t PIN_EXT_flameL = P2;
+uint8_t PIN_EXT_flameF = P3;
+
+// IO Extender - - - - - - - - - - - - - - - - - 
 PCF8574 pcf8574(0x20);
 
-// Ultrasonic Sensors Trig and Echo Pins 
-int trigPinF = 3; // Trig pin of Front Ultrasonic Sensor to pin 3 
-int echoPinF = 4; // Echo pin of Front Ultrasonic Sensor to pin 4 
-int echoPinFR = A0; // Trig pin of Front Right Ultrasonic Sensor to pin A0 
-int trigPinFR = A1; // Echo pin of Front Right Ultrasonic Sensor to pin A1 
-int echoPinFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
-int trigPinFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
-long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanceFL, durationFL;
+// Ultrasonic Sensors Trig and Echo Pins - - - - 
+int PIN_TRIG_edgeF = 3; // Trig pin of Front Ultrasonic Sensor to pin 3 
+int PIN_ECHO_edgeF = 4; // Echo pin of Front Ultrasonic Sensor to pin 4 
+int PIN_TRIG_edgeFR = A1; // Echo pin of Front Right Ultrasonic Sensor to pin A1 
+int PIN_ECHO_edgeFR = A0; // Trig pin of Front Right Ultrasonic Sensor to pin A0 
+int PIN_TRIG_edgeFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
+int PIN_ECHO_edgeFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
+long OBJECT_outputF, OBJECT_outputR, OBJECT_outputL; //Ultrasonic sensors
 
-// Flags
-bool edgeDetectionFlag = false;
-bool objectDetectionFlag = false;
-bool lineDetectionFlag = false;
-bool fireDetectionFlag = false;
-bool leftLineFlag = false;
-bool rightLineFlag = false;
-bool middleLineFlag = false;
-bool leftFireFlag = false;
-bool rightFireFlag = false;
-bool middleFireFlag = false;
+// Flags ------------------------------------------------------------------------
+bool FLAG_edgeDetection = false;
+bool FLAG_edgeL = false;
+bool FLAG_edgeR = false;
+
+bool FLAG_objectDetection = false;
+bool FLAG_objectL = false;
+bool FLAG_objectR = false;
+bool FLAG_objectF = false;
+
+bool FLAG_fireDetection = false;
+bool FLAG_fireL = false;
+bool FLAG_fireR = false;
+bool FLAG_fireF = false;
+
+bool FLAG_lineDetection = false; // NOT used
+bool FLAG_lineL = false;
+bool FLAG_lineR = false;
+bool FLAG_lineF = false;
 
 // Object Detection Ultrasonic Sensors
-NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
-NewPing sonarFR(trigPinFR, echoPinFR, MAX_DISTANCE);
-NewPing sonarF(trigPinF, echoPinF, MAX_DISTANCE);
+NewPing OBJECT_sonarL(PIN_TRIG_edgeFL, PIN_ECHO_edgeFL, MAX_DISTANCE);
+NewPing OBJECT_sonarR(PIN_TRIG_edgeFR, PIN_ECHO_edgeFR, MAX_DISTANCE);
+NewPing OBJECT_sonarF(PIN_TRIG_edgeF, PIN_ECHO_edgeF, MAX_DISTANCE);
 
 void setup () {
   Serial.begin(9600); // Initialize the serial communications
@@ -70,8 +80,8 @@ void setup () {
   pinMode(STBY, OUTPUT);
   pinMode(PWMAR, OUTPUT); 
   pinMode(PWMBR, OUTPUT); 
-  pinMode (PWMAL, OUTPUT);
-  pinMode (PWMBL, OUTPUT);
+  pinMode(PWMAL, OUTPUT);
+  pinMode(PWMBL, OUTPUT);
 
   // Adjust Speed
   analogWrite(PWMAR, high); 
@@ -79,56 +89,44 @@ void setup () {
   analogWrite(PWMAL, high);
   analogWrite(PWMBL, high);
 
-  // Initialize the Ultrasonic Sensor pins
-  pinMode(trigPinF, OUTPUT);
-  pinMode(echoPinF, INPUT);
-  pinMode(trigPinFR, OUTPUT);
-  pinMode(echoPinFR, INPUT);
-  pinMode(trigPinFL, OUTPUT);
-  pinMode(echoPinFL, INPUT);
+  // Initialize the Ultrasonic Sensor pins --------------
+  pinMode(PIN_TRIG_edgeF, OUTPUT);
+  pinMode(PIN_ECHO_edgeF, INPUT);
+  pinMode(PIN_TRIG_edgeFR, OUTPUT);
+  pinMode(PIN_ECHO_edgeFR, INPUT);
+  pinMode(PIN_TRIG_edgeFL, OUTPUT);
+  pinMode(PIN_ECHO_edgeFL, INPUT);
+  // Edge IR Sensors - - - - - - - -
+  pinMode(PIN_edgeR, INPUT);
+  pinMode(PIN_edgeL, INPUT);
+  // Flame IR Sensors - - - - - - - -
+  pcf8574.pinMode(PIN_EXT_flameL, INPUT);
+  pcf8574.pinMode(PIN_EXT_flameR, INPUT);
+  pcf8574.pinMode(PIN_EXT_flameF, INPUT);
 
-  // IR Sensors
-  pinMode(IRR, INPUT);
-  pinMode(IRL, INPUT);
-  pcf8574.pinMode(FIRL, INPUT);
-  pcf8574.pinMode(FIRR, INPUT);
-  pcf8574.pinMode(FIRM, INPUT);
-
-  // initialize IO Extender
+  // Initialize IO Extender
   if (pcf8574.begin()) {
     Serial.println("OK");
   } else {
     Serial.println("KO");
   }
-
 }
 
 void loop () {
-  int offset = 1;
-  int maxLineTurnDuration = 3000;
+//  int offset = 1;
   unsigned long operationStartTime;
   unsigned long tempTime;
 
-  // Edge Detection --------------------
-  int IRRStatus = digitalRead(IRR);
-  int IRLStatus = digitalRead(IRL);
+  // Edge Detection Sensors --------------------
+  int EDGE_outputR = digitalRead(PIN_edgeR);
+  int EDGE_outputL = digitalRead(PIN_edgeL);
+  //EdgeSensorOutputs(EDGE_outputR,EDGE_outputL);
 
-  // Serial.print("IR Right On--------:");
-  // Serial.println(IRRStatus);
-  // Serial.print("IR Left On--------:");
-  // Serial.println(IRLStatus);
-
-  // Flame Detection ---------------------
-  int FIRLStatus = pcf8574.digitalRead(FIRL);
-  int FIRRStatus = pcf8574.digitalRead(FIRR);
-  int FIRMStatus = pcf8574.digitalRead(FIRM);
-
-  Serial.print("IR FIRE LEFT On--------:");
-  Serial.println(FIRLStatus);
-  Serial.print("IR FIRE RIGHT On--------:");
-  Serial.println(FIRRStatus);
-  Serial.print("IR FIRE MIDDLE On--------:");
-  Serial.println(FIRMStatus);
+  // Flame Detection Sensors ---------------------
+  int FIRE_outputL = pcf8574.digitalRead(PIN_EXT_flameL);
+  int FIRE_outputR = pcf8574.digitalRead(PIN_EXT_flameR);
+  int FIRE_outputF = pcf8574.digitalRead(PIN_EXT_flameF);
+ //FireSensorOutputs(FIRE_outputR,FIRE_outputL,FIRE_outputF);
 
   // PCF8574::DigitalInput di = pcf8574.digitalReadAll();
 	// Serial.print(di.p0);
@@ -139,224 +137,285 @@ void loop () {
 	// Serial.print(" - ");
 	// Serial.println(di.p3);
 
-  // Object Avoidance --------------------
-  distanceFR = sonarFR.ping_cm();
-  distanceFL = sonarFL.ping_cm();
-  distanceF = sonarF.ping_cm();
-
-  // Serial.print("Distance Front ----: ");
-  // Serial.println(distanceF);  
-  // Serial.print("Distance Front Right----: ");
-  // Serial.println(distanceFR);  
-  // Serial.print("Distance Front Left----: ");
-  // Serial.println(distanceFL);  
-
+  // Object Avoidance Sensors --------------------
+  OBJECT_outputR = OBJECT_sonarR.ping_cm();
+  OBJECT_outputL = OBJECT_sonarL.ping_cm();
+  OBJECT_outputF = OBJECT_sonarF.ping_cm();
+  //ObjectSensorOutputs(OBJECT_outputR,OBJECT_outputL,OBJECT_outputF);
   // Line Following --------------------
-  // Serial.print("Left On--------:");
-  // Serial.println(leftLine);
-  // Serial.print("Middle On--------:");
-  // Serial.println(middleLine);
-  // Serial.print("Right On--------:");
-  // Serial.println(rightLine);
+  //IR Sensors
+  int LINE_outputL = digitalRead(PIN_lineL); //red P2 7
+  int LINE_outputF = digitalRead(PIN_lineF); //orange P1 13 NOW GREEN
+  int LINE_outputR = digitalRead(PIN_lineR);
+  //LineSensorOutputs(LINE_outputR,LINE_outputL,LINE_outputF);
 
-  // Edge Detection --------------------
-  if (IRRStatus == HIGH && IRLStatus == HIGH) {
+  // Edge Detection ----------------------------------------
+  if (EDGE_outputR == HIGH && EDGE_outputL == HIGH) {
+    operationStartTime=millis();
     EdgeDetectionMode();
-    Backward();
-    delay(300);
-    Right();
-    delay(750);
-  } else if (IRRStatus == HIGH) {
+    FLAG_edgeL = true;
+    FLAG_edgeR = true;
+  } else if (EDGE_outputR == HIGH) {
+    operationStartTime=millis();
     EdgeDetectionMode();
-    Backward();
-    delay(300);
-    Left();
-    delay(300);
-  } else if (IRLStatus == HIGH) {
+    FLAG_edgeR = true;
+  } else if (EDGE_outputL == HIGH) {
+    operationStartTime=millis();
     EdgeDetectionMode();
-    Backward();
-    delay(300);
-    Right();
-    delay(300);
+    FLAG_edgeL = true;
   } 
-
-  // Flame Detection LOW = detected -----------------
- // else if (FIRMStatus == LOW) {
-  else if (!FIRMStatus) {
-//    Serial.print("IR FIRE MIDDLE RIGHT On--------:");
+  // Flame Detection (LOW = detected) -------------------------
+  else if (!FIRE_outputF) { 
     operationStartTime=millis();
     FireDetectionMode();
-    middleFireFlag = true;
-    // stop until the flame goes out
-  }
-  else if (FIRRStatus == LOW) {
+    FLAG_fireF = true;
+  }  else if (FIRE_outputR == LOW) {
     operationStartTime=millis();
     FireDetectionMode();
-    rightFireFlag = true;
-  }
-  else if (FIRLStatus == LOW) {
+    FLAG_fireR = true;
+  }  else if (FIRE_outputL == LOW) {
     operationStartTime=millis();
     FireDetectionMode();
-    leftFireFlag = true;
+    FLAG_fireL = true;
   }
-
-  // Object Avoidance --------------------
-  else if (distanceF <= 10 && distanceF != 0) { 
+  // Object Avoidance ----------------------------------------
+  else if (OBJECT_outputF <= 10 && OBJECT_outputF != 0) { 
+    operationStartTime=millis();
     ObjectAvoidanceMode();
-    Right();
-    delay(750);
+    FLAG_objectF=true;
   } 
-  else if (distanceFR <= 10 && distanceFR != 0) {
+  else if (OBJECT_outputR <= 10 && OBJECT_outputR != 0) {
+    operationStartTime=millis();
     ObjectAvoidanceMode();
-    Left();
-    delay(300);
+    FLAG_objectR=true;
   } 
-  else if (distanceFL <= 10 && distanceFL != 0) {
+  else if (OBJECT_outputL <= 10 && OBJECT_outputL != 0) {
+    operationStartTime=millis();
     ObjectAvoidanceMode();
-    Right();
-    delay(300);
+    FLAG_objectL=true;
   }
-
   // Line Following --------------------
-  else if (middleLine && !rightLine && !leftLine) {
+  else if (LINE_outputF && !LINE_outputR && !LINE_outputL) {
     Forward();
   }
-  else if (middleLine && rightLine && leftLine || middleLine && leftLine || leftLine) {
+  else if (LINE_outputF && LINE_outputR && LINE_outputL || LINE_outputF && LINE_outputL || LINE_outputL) {
     operationStartTime=millis();
-    leftLineFlag = true;
+    FLAG_lineL = true;
   }
-  else if (middleLine && rightLine || rightLine) {
+  else if (LINE_outputF && LINE_outputR || LINE_outputR) {
     operationStartTime=millis();
-    rightLineFlag = true;
+    FLAG_lineR = true;
   }
-
-  // Forward --------------------
   else {
     Forward();
   }
+  FlagOutputs(FLAG_edgeDetection,FLAG_objectDetection,FLAG_fireDetection,FLAG_lineDetection,FLAG_lineL,FLAG_lineR);
 
-  // Serial.print("object detection--------:");
-  // Serial.println(objectDetectionFlag);
-  Serial.print("fire detection--------:");
-  Serial.println(fireDetectionFlag);
-  // Serial.print("line detection right--------:");
-  // Serial.println(rightLineFlag);
-  // Serial.print("line detection left--------:");
-  // Serial.println(leftLineFlag);
-  Serial.print("IR FIRE MIDDLE On--------:");
-  Serial.println(FIRMStatus);
-  // Serial.print("IR FIRE MIDDLE Flag On--------:");
-  // Serial.println(middleFireFlag);
+  // Edge Detection Flags ------- (WHILE OR IF)
+  if (FLAG_edgeDetection){
+    if (FLAG_edgeL && FLAG_edgeR){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        while (digitalRead(PIN_edgeR)==HIGH && digitalRead(PIN_edgeL) == HIGH){
+          Backward();
+        }
+        Right();
+      }
+      FLAG_edgeL=false;
+      FLAG_edgeR=false;
+      FLAG_edgeDetection = false;
+    }
+    if(FLAG_edgeL){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        while (digitalRead(PIN_edgeR)==HIGH){
+          Backward();
+        }
+        Left();
+      }
+      FLAG_edgeL=false;
+      FLAG_edgeDetection = false;
+    }
+    if(FLAG_edgeR){
+        tempTime = millis();
+        if (tempTime >= operationStartTime + OFFSET) {
+          while (digitalRead(PIN_edgeL) == HIGH){
+            Backward();
+          }
+          Right();
+        }
+      }
+      FLAG_edgeR=false;
+      FLAG_edgeDetection = false;
+  }
+  
 
-  Serial.print("IR FIRE LEFT On--------:");
-  Serial.println(FIRLStatus);
-  // Serial.print("IR FIRE LEFT Flag On--------:");
-  // Serial.println(leftFireFlag);
-
-  Serial.print("IR FIRE RIGHT On--------:");
-  Serial.println(FIRRStatus);
-  // Serial.print("IR FIRE RIGHT Flag On--------:");
-  // Serial.println(rightFireFlag);
+  // Object Detection Flags -------
+  if (FLAG_objectDetection){
+    if (FLAG_objectF){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (OBJECT_outputF <= 15 && OBJECT_outputF != 0) {
+          Right();
+        } else{
+          FLAG_objectF=false;
+          FLAG_objectDetection=false;
+        }
+      }
+    }
+    if (FLAG_objectR){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (OBJECT_outputR <= 13 && OBJECT_outputR != 0) {
+          Left();
+        } else{
+          FLAG_objectR=false;
+          FLAG_objectDetection=false;
+        }
+      }
+    }
+    if (FLAG_objectL){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (OBJECT_outputL <= 13 && OBJECT_outputL != 0) {
+          Right();
+        } else{
+          FLAG_objectL=false;
+          FLAG_objectDetection=false;
+        }
+      }
+    }
+  }
 
   // Flame Detection Flags
-  if (!objectDetectionFlag && !edgeDetectionFlag && fireDetectionFlag) {
-
-    if (middleFireFlag){
+  if (!FLAG_objectDetection && !FLAG_edgeDetection && FLAG_fireDetection) {
+    if (FLAG_fireF){
       tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        while (pcf8574.digitalRead(FIRM)==LOW) { 
-          
-          Stop(); }
-        //else { 
-          middleFireFlag = false; 
-          fireDetectionFlag = false;
-            Serial.print("IR FIRE FLAG ENTER HERE--------:");
-
-        //}
+      if (tempTime >= operationStartTime + OFFSET) {
+        while (pcf8574.digitalRead(PIN_EXT_flameF)==LOW) { Stop();}
+          FLAG_fireF = false; 
+          FLAG_fireDetection = false;
       }
     }
 
-    if (leftFireFlag){
+    if (FLAG_fireL){
       tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (pcf8574.digitalRead(FIRM)==HIGH) { FlameLeft(); }
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (pcf8574.digitalRead(PIN_EXT_flameF)==HIGH) { FlameLeft(); }
         else { 
-          leftFireFlag = false; 
-          fireDetectionFlag = false;
+          FLAG_fireL = false; 
+          FLAG_fireDetection = false;
         }
       }
     }
 
-    if (rightFireFlag){
+    if (FLAG_fireR){
       tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (pcf8574.digitalRead(FIRM)==HIGH) { FlameRight(); }
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (pcf8574.digitalRead(PIN_EXT_flameF)==HIGH) { FlameRight(); }
         else { 
-          rightFireFlag = false; 
-          fireDetectionFlag = false;
+          FLAG_fireR = false; 
+          FLAG_fireDetection = false;
         }
       }
     }
   }
 
   // Line Following Flags (Turn until middle) -------
-  if (!objectDetectionFlag && !edgeDetectionFlag && !fireDetectionFlag) {
-    if (leftLineFlag){
+  if (!FLAG_objectDetection && !FLAG_edgeDetection && !FLAG_fireDetection) {
+    if (FLAG_lineL){
       tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightLeft(); }
-        else { leftLineFlag = false; }
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (digitalRead(PIN_lineF)==LOW && tempTime <= operationStartTime + MAX_LINE_TURN_DURATION) { SlightLeft(); }
+        else { FLAG_lineL = false; }
       }
     }
-
-    if (rightLineFlag) {
+    if (FLAG_lineR) {
       tempTime = millis();
-      if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightRight(); }
-        else { rightLineFlag = false; }
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (digitalRead(PIN_lineF)==LOW && tempTime <= operationStartTime + MAX_LINE_TURN_DURATION) { SlightRight(); }
+        else { FLAG_lineR = false; }
       }
     }
   }
-  
-  // Resetting Flags ---------
-  if (objectDetectionFlag) { objectDetectionFlag = false;}
-  if (edgeDetectionFlag) { edgeDetectionFlag = false; }
-  // if (fireDetectionFlag) { fireDetectionFlag = false; }
 }
 
 void EdgeDetectionMode () {
-  edgeDetectionFlag = true;
-  objectDetectionFlag = false;
-  leftLineFlag = false;
-  rightLineFlag = false;
+  FLAG_edgeDetection = true;
+  FLAG_objectDetection = false;
+  FLAG_lineL = false;
+  FLAG_lineR = false;
+}
+void EdgeSensorOutputs(int R, int L){
+  Serial.print("IR Right On--------:");
+  Serial.println(R);
+  Serial.print("IR Left On--------:");
+  Serial.println(L);
 }
 
 void ObjectAvoidanceMode () {
-  objectDetectionFlag = true;
-  leftLineFlag = false;
-  rightLineFlag = false;
-  // why no middle line flag
+  FLAG_objectDetection = true;
+  FLAG_lineL = false;
+  FLAG_lineR = false;
+}
+void ObjectSensorOutputs(int R, int L,int F){
+  Serial.print("Distance Front ----: ");
+  Serial.println(F);  
+  Serial.print("Distance Front Right----: ");
+  Serial.println(R);  
+  Serial.print("Distance Front Left----: ");
+  Serial.println(L);  
 }
 
 void FireDetectionMode () {
-  objectDetectionFlag = false;
-  fireDetectionFlag = true;
-  // lineDetectionFlag = false;   CAN WE DO THIS???
-  leftLineFlag = false;
-  rightLineFlag = false;
+  FLAG_objectDetection = false;
+  FLAG_fireDetection = true;
+  // FLAG_lineDetection = false;   CAN WE DO THIS???
+  FLAG_lineL = false;
+  FLAG_lineR = false;
+}
+void FireSensorOutputs(int R, int L, int F){
+  Serial.print("IR FIRE LEFT On--------:");
+  Serial.println(L);
+  Serial.print("IR FIRE RIGHT On--------:");
+  Serial.println(R);
+  Serial.print("IR FIRE MIDDLE On--------:");
+  Serial.println(F);
 }
 
 void LineDetectionMode () {
-  lineDetectionFlag = true;
+  FLAG_lineDetection = true;
+}
+void LineSensorOutputs(int R, int L,int F){
+  Serial.print("Left On--------:");
+  Serial.println(L);
+  Serial.print("Right On--------:");
+  Serial.println(R);
+  Serial.print("Middle On--------:");
+  Serial.println(F);
 }
 
+void FlagOutputs(bool edge, bool object,bool fire,bool line,bool lineL,bool lineR){
+  Serial.print("edge detection--------:");
+  Serial.println(edge);
+  Serial.print("object detection--------:");
+  Serial.println(object);
+  Serial.print("fire detection--------:");
+  Serial.println(fire);
+  Serial.print("line detection --------:");
+  Serial.println(line);
+  Serial.print("line detection right--------:");
+  Serial.println(lineR);
+  Serial.print("line detection left--------:");
+  Serial.println(lineL);
+}
 
 void Right () {
   analogWrite(PWMAR, turnHigh); // Right wheels backwards
   analogWrite(PWMBR, low); 
   analogWrite(PWMAL, turnHigh);  // Left wheels forward
   analogWrite(PWMBL, low); 
-  digitalWrite (STBY, HIGH);
+  digitalWrite(STBY, HIGH);
 }
 
 void FlameRight () {
