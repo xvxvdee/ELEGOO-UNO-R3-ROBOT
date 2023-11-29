@@ -9,9 +9,9 @@
 #define rightIRPin 2
 
  // Line Following IR Sensors
-#define left digitalRead(leftIRPin) //red P2 7
-#define middle digitalRead(middleIRPin) //orange P1 13 NOW GREEN
-#define right digitalRead(rightIRPin)
+#define leftLine digitalRead(leftIRPin) //red P2 7
+#define middleLine digitalRead(middleIRPin) //orange P1 13 NOW GREEN
+#define rightLine digitalRead(rightIRPin)
 
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
 
@@ -22,8 +22,9 @@ int PWMAL=5; // Left motors A pin
 int PWMBL=6; // Left motors B pin
 
 // Turning Speed
-int high = 125;
-int turnHigh = 150;
+int high = 115;
+int turnHigh = 130;
+int turnLow = 110;
 int low = 0;
 
 // Edge Detection IR Sensors
@@ -33,7 +34,7 @@ int IRL = 12;
 // Flame IR Sensors
 uint8_t FIRR = P1;
 uint8_t FIRL = P2;
-uint8_t FIRM = P0;
+uint8_t FIRM = P3;
 
 PCF8574 pcf8574(0x20);
 
@@ -49,9 +50,14 @@ long durationR, durationL, durationF, distanceF, durationFR, distanceFR, distanc
 // Flags
 bool edgeDetectionFlag = false;
 bool objectDetectionFlag = false;
-bool leftFlag = false;
-bool rightFlag = false;
-bool middleFlag = false;
+bool lineDetectionFlag = false;
+bool fireDetectionFlag = false;
+bool leftLineFlag = false;
+bool rightLineFlag = false;
+bool middleLineFlag = false;
+bool leftFireFlag = false;
+bool rightFireFlag = false;
+bool middleFireFlag = false;
 
 // Object Detection Ultrasonic Sensors
 NewPing sonarFL(trigPinFL, echoPinFL, MAX_DISTANCE);
@@ -99,6 +105,7 @@ void setup () {
 
 void loop () {
   int offset = 1;
+  int maxLineTurnDuration = 3000;
   unsigned long operationStartTime;
   unsigned long tempTime;
 
@@ -146,11 +153,11 @@ void loop () {
 
   // Line Following --------------------
   // Serial.print("Left On--------:");
-  // Serial.println(left);
+  // Serial.println(leftLine);
   // Serial.print("Middle On--------:");
-  // Serial.println(middle);
+  // Serial.println(middleLine);
   // Serial.print("Right On--------:");
-  // Serial.println(right);
+  // Serial.println(rightLine);
 
   // Edge Detection --------------------
   if (IRRStatus == HIGH && IRLStatus == HIGH) {
@@ -173,55 +180,140 @@ void loop () {
     delay(300);
   } 
 
+  // Flame Detection LOW = detected -----------------
+ // else if (FIRMStatus == LOW) {
+  else if (!FIRMStatus) {
+//    Serial.print("IR FIRE MIDDLE RIGHT On--------:");
+    operationStartTime=millis();
+    FireDetectionMode();
+    middleFireFlag = true;
+    // stop until the flame goes out
+  }
+  else if (FIRRStatus == LOW) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    rightFireFlag = true;
+  }
+  else if (FIRLStatus == LOW) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    leftFireFlag = true;
+  }
+
   // Object Avoidance --------------------
-  else if (distanceF <= 15 && distanceF != 0) { 
+  else if (distanceF <= 10 && distanceF != 0) { 
     ObjectAvoidanceMode();
     Right();
     delay(750);
   } 
-  else if (distanceFR <= 13 && distanceFR != 0) {
+  else if (distanceFR <= 10 && distanceFR != 0) {
     ObjectAvoidanceMode();
     Left();
     delay(300);
   } 
-  else if (distanceFL <= 13 && distanceFL != 0) {
+  else if (distanceFL <= 10 && distanceFL != 0) {
     ObjectAvoidanceMode();
     Right();
     delay(300);
   }
 
   // Line Following --------------------
-  else if (middle && !right && !left) {
+  else if (middleLine && !rightLine && !leftLine) {
     Forward();
   }
-  else if (middle && right && left || middle && left || left) {
+  else if (middleLine && rightLine && leftLine || middleLine && leftLine || leftLine) {
     operationStartTime=millis();
-    leftFlag = true;
+    leftLineFlag = true;
   }
-  else if (middle && right || right) {
+  else if (middleLine && rightLine || rightLine) {
     operationStartTime=millis();
-    rightFlag = true;
+    rightLineFlag = true;
   }
+
   // Forward --------------------
   else {
     Forward();
   }
 
-  // Line Following Flags -------
-  if (!objectDetectionFlag && !edgeDetectionFlag) {
-    if (leftFlag){
+  // Serial.print("object detection--------:");
+  // Serial.println(objectDetectionFlag);
+  Serial.print("fire detection--------:");
+  Serial.println(fireDetectionFlag);
+  // Serial.print("line detection right--------:");
+  // Serial.println(rightLineFlag);
+  // Serial.print("line detection left--------:");
+  // Serial.println(leftLineFlag);
+  Serial.print("IR FIRE MIDDLE On--------:");
+  Serial.println(FIRMStatus);
+  // Serial.print("IR FIRE MIDDLE Flag On--------:");
+  // Serial.println(middleFireFlag);
+
+  Serial.print("IR FIRE LEFT On--------:");
+  Serial.println(FIRLStatus);
+  // Serial.print("IR FIRE LEFT Flag On--------:");
+  // Serial.println(leftFireFlag);
+
+  Serial.print("IR FIRE RIGHT On--------:");
+  Serial.println(FIRRStatus);
+  // Serial.print("IR FIRE RIGHT Flag On--------:");
+  // Serial.println(rightFireFlag);
+
+  // Flame Detection Flags
+  if (!objectDetectionFlag && !edgeDetectionFlag && fireDetectionFlag) {
+
+    if (middleFireFlag){
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW) { SlightLeft(); }
-        else { leftFlag = false; }
+        while (pcf8574.digitalRead(FIRM)==LOW) { 
+          
+          Stop(); }
+        //else { 
+          middleFireFlag = false; 
+          fireDetectionFlag = false;
+            Serial.print("IR FIRE FLAG ENTER HERE--------:");
+
+        //}
       }
     }
 
-    if (rightFlag) {
+    if (leftFireFlag){
       tempTime = millis();
       if (tempTime >= operationStartTime + offset) {
-        if (digitalRead(middleIRPin)==LOW) { SlightRight(); }
-        else { rightFlag = false; }
+        if (pcf8574.digitalRead(FIRM)==HIGH) { FlameLeft(); }
+        else { 
+          leftFireFlag = false; 
+          fireDetectionFlag = false;
+        }
+      }
+    }
+
+    if (rightFireFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (pcf8574.digitalRead(FIRM)==HIGH) { FlameRight(); }
+        else { 
+          rightFireFlag = false; 
+          fireDetectionFlag = false;
+        }
+      }
+    }
+  }
+
+  // Line Following Flags (Turn until middle) -------
+  if (!objectDetectionFlag && !edgeDetectionFlag && !fireDetectionFlag) {
+    if (leftLineFlag){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightLeft(); }
+        else { leftLineFlag = false; }
+      }
+    }
+
+    if (rightLineFlag) {
+      tempTime = millis();
+      if (tempTime >= operationStartTime + offset) {
+        if (digitalRead(middleIRPin)==LOW && tempTime <= operationStartTime + maxLineTurnDuration) { SlightRight(); }
+        else { rightLineFlag = false; }
       }
     }
   }
@@ -229,25 +321,48 @@ void loop () {
   // Resetting Flags ---------
   if (objectDetectionFlag) { objectDetectionFlag = false;}
   if (edgeDetectionFlag) { edgeDetectionFlag = false; }
+  // if (fireDetectionFlag) { fireDetectionFlag = false; }
 }
 
 void EdgeDetectionMode () {
   edgeDetectionFlag = true;
   objectDetectionFlag = false;
-  leftFlag = false;
-  rightFlag = false;
+  leftLineFlag = false;
+  rightLineFlag = false;
 }
 
 void ObjectAvoidanceMode () {
   objectDetectionFlag = true;
-  leftFlag = false;
-  rightFlag = false;
+  leftLineFlag = false;
+  rightLineFlag = false;
+  // why no middle line flag
 }
+
+void FireDetectionMode () {
+  objectDetectionFlag = false;
+  fireDetectionFlag = true;
+  // lineDetectionFlag = false;   CAN WE DO THIS???
+  leftLineFlag = false;
+  rightLineFlag = false;
+}
+
+void LineDetectionMode () {
+  lineDetectionFlag = true;
+}
+
 
 void Right () {
   analogWrite(PWMAR, turnHigh); // Right wheels backwards
   analogWrite(PWMBR, low); 
   analogWrite(PWMAL, turnHigh);  // Left wheels forward
+  analogWrite(PWMBL, low); 
+  digitalWrite (STBY, HIGH);
+}
+
+void FlameRight () {
+  analogWrite(PWMAR, turnLow); // Right wheels backwards
+  analogWrite(PWMBR, low); 
+  analogWrite(PWMAL, turnLow);  // Left wheels forward
   analogWrite(PWMBL, low); 
   digitalWrite (STBY, HIGH);
 }
@@ -266,7 +381,14 @@ void Left () {
   analogWrite(PWMAL, low);  // Left wheels backwards
   analogWrite(PWMBL, turnHigh); 
   digitalWrite (STBY, HIGH);
+}
 
+void FlameLeft () {
+  analogWrite(PWMAR, low); // Right wheels forward
+  analogWrite(PWMBR, turnLow); 
+  analogWrite(PWMAL, low);  // Left wheels backwards
+  analogWrite(PWMBL, turnLow); 
+  digitalWrite (STBY, HIGH);
 }
 
 void SlightLeft () {
