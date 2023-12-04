@@ -2,10 +2,10 @@
 
 To-do:
 * [ ] Debug code changes made by Deandra
-* [ ] Edge Detection
-  * [ ] Remove delays in edge detection algorithm
-* [ ] Object Avoidance
-  * [ ] Remove delays in object avoidance algorithm
+* [x] Edge Detection
+  * [x] Remove delays in edge detection algorithm
+* [x] Object Avoidance
+  * [x] Remove delays in object avoidance algorithm
   * [ ] Add 3 ultrasonic sensors to fix object detection blind spots
 * [ ] Line Following
   * [ ] Fix line following algorithm, figure out why sometimes it doesn't follow lines properly
