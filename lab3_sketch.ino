@@ -35,6 +35,9 @@ uint8_t PIN_EXT_flameR = P1;
 uint8_t PIN_EXT_flameL = P2;
 uint8_t PIN_EXT_flameF = P3;
 
+// Flame Extinguisher Fan - - - - - - - - - - - -
+uint8_t PIN_EXT_fan = P4;
+
 // IO Extender - - - - - - - - - - - - - - - - - 
 PCF8574 pcf8574(0x20);
 
@@ -96,6 +99,9 @@ void setup () {
   pcf8574.pinMode(PIN_EXT_flameR, INPUT);
   pcf8574.pinMode(PIN_EXT_flameF, INPUT);
 
+  // Flame Fan - - - - - - - - - - - - 
+  pcf8574.pinMode(PIN_EXT_fan, OUTPUT);
+
   // Initialize IO Extender
   if (pcf8574.begin()) {
     Serial.println("OK");
@@ -141,7 +147,7 @@ void loop () {
   int LINE_outputL = digitalRead(PIN_lineL); //red P2 7
   int LINE_outputF = digitalRead(PIN_lineF); //orange P1 13 NOW GREEN
   int LINE_outputR = digitalRead(PIN_lineR);
-  LineSensorOutputs(LINE_outputR,LINE_outputL,LINE_outputF);
+  // LineSensorOutputs(LINE_outputR,LINE_outputL,LINE_outputF);
 
   // Object Avoidance ----------------------------------------
   if (OBJECT_outputF <= 10 && OBJECT_outputF != 0) { 
@@ -228,13 +234,18 @@ void loop () {
   }
 
   // Flame Detection Flags
-  if (!FLAG_objectDetection && FLAG_fireDetection) {
+  else if (!FLAG_objectDetection && FLAG_fireDetection) {
     if (FLAG_fireF){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        while (pcf8574.digitalRead(PIN_EXT_flameF)==LOW) { Stop();}
+        while (pcf8574.digitalRead(PIN_EXT_flameF)==LOW) { 
+          Stop();
+          FanOn();
+        }
           FLAG_fireF = false; 
+          // all flags off??
           FLAG_fireDetection = false;
+          FanOff();
       }
     }
 
@@ -262,7 +273,8 @@ void loop () {
   }
 
   // Line Following Flags (Turn until middle) -------
-  if (!FLAG_objectDetection && !FLAG_fireDetection) {
+  else if (!FLAG_objectDetection && !FLAG_fireDetection) {
+  // else if (!FLAG_objectDetection) {
     if (FLAG_lineL){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
@@ -278,6 +290,8 @@ void loop () {
       }
     }
   }
+
+  if (FLAG_objectDetection) { FLAG_objectDetection = false; }
 }
 
 void ObjectAvoidanceMode () {
@@ -333,6 +347,14 @@ void FlagOutputs(bool object,bool fire,bool line,bool lineL,bool lineR){
   Serial.println(lineR);
   Serial.print("line detection left--------:");
   Serial.println(lineL);
+}
+
+void FanOn () {
+  pcf8574.digitalWrite(PIN_EXT_fan, HIGH);
+}
+
+void FanOff () {
+  pcf8574.digitalWrite(PIN_EXT_fan, LOW);
 }
 
 void Right () {
