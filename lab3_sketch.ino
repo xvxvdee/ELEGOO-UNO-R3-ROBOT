@@ -2,7 +2,7 @@
 #include <PCF8574.h>
 
 #define MAX_DISTANCE 5000
-int MAX_LINE_TURN_DURATION = 1500;
+int MAX_LINE_TURN_DURATION = 3000;
 int MAX_FLAME_TURN_DURATION = 3000;
 
 int OFFSET = 1;
@@ -47,7 +47,8 @@ uint8_t PIN_EXT_flameF = P3;
 uint8_t PIN_EXT_fan = P4;
 
 // IO Extender - - - - - - - - - - - - - - - - - 
-PCF8574 pcf8574(0x20);
+PCF8574 EXT1(0x20);
+PCF8574 EXT2(0x21);
 
 // Ultrasonic Sensors Trig and Echo Pins - - - - 
 int PIN_TRIG_objectF = 3; // Trig pin of Front Ultrasonic Sensor to pin 3 
@@ -56,14 +57,15 @@ int PIN_TRIG_objectFR = A1; // Echo pin of Front Right Ultrasonic Sensor to pin 
 int PIN_ECHO_objectFR = A0; // Trig pin of Front Right Ultrasonic Sensor to pin A0 
 int PIN_TRIG_objectFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
 int PIN_ECHO_objectFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
+
 // int PIN_TRIG_objectTF = 00; 
 // int PIN_ECHO_objectTF = 00; 
-// int PIN_TRIG_objectTFR = 00; 
-// int PIN_ECHO_objectTFR = 00; 
-// int PIN_TRIG_objectTFL = 00; 
-// int PIN_ECHO_objectTFL = 00; 
-// int PIN_TRIG_objectB = 00; //// Back Sensor
-// int PIN_ECHO_objectB = 00; 
+// uint8_t PIN_EXT_TRIG_objectTFR = P1; 
+// uint8_t PIN_EXT_ECHO_objectTFR = P0; 
+// uint8_t PIN_EXT_TRIG_objectTFL = P3; 
+// uint8_t PIN_EXT_ECHO_objectTFL = P2; 
+int PIN_EXT_TRIG_objectB = 11; //// Back Sensor
+int PIN_EXT_ECHO_objectB = 12; 
 
 
 long  OBJECT_outputF,OBJECT_outputTF,OBJECT_outputR,OBJECT_outputTR, OBJECT_outputL, OBJECT_outputTL,OBJECT_outputB; //Ultrasonic sensors
@@ -73,7 +75,7 @@ bool FLAG_objectDetection = false;
 bool FLAG_objectL = false;
 bool FLAG_objectR = false;
 bool FLAG_objectF = false;
-// bool FLAG_objectB = false;
+bool FLAG_objectB = false;
 
 bool FLAG_fireDetection = false;
 bool FLAG_fireL = false;
@@ -89,10 +91,10 @@ bool FLAG_lineF = false;
 NewPing OBJECT_sonarL(PIN_TRIG_objectFL, PIN_ECHO_objectFL, MAX_DISTANCE);
 NewPing OBJECT_sonarR(PIN_TRIG_objectFR, PIN_ECHO_objectFR, MAX_DISTANCE);
 NewPing OBJECT_sonarF(PIN_TRIG_objectF, PIN_ECHO_objectF, MAX_DISTANCE);
-// NewPing OBJECT_sonarTL(PIN_TRIG_objectTFL, PIN_ECHO_objectTFL, MAX_DISTANCE);
-// NewPing OBJECT_sonarTR(PIN_TRIG_objectTFR, PIN_ECHO_objectTFR, MAX_DISTANCE);
+// NewPing OBJECT_sonarTL(PIN_EXT_TRIG_objectTFL, PIN_EXT_ECHO_objectTFL, MAX_DISTANCE);
+// NewPing OBJECT_sonarTR(PIN_EXT_TRIG_objectTFR, PIN_EXT_ECHO_objectTFR, MAX_DISTANCE);
 // NewPing OBJECT_sonarTF(PIN_TRIG_objectTF, PIN_ECHO_objectTF, MAX_DISTANCE);
-// NewPing OBJECT_sonarB(PIN_TRIG_objectB, PIN_ECHO_objectB, MAX_DISTANCE);
+NewPing OBJECT_sonarB(PIN_EXT_TRIG_objectB, PIN_EXT_ECHO_objectB, MAX_DISTANCE); 
 
 void setup () {
   Serial.begin(9600); // Initialize the serial communications
@@ -118,31 +120,37 @@ void setup () {
   pinMode(PIN_ECHO_objectFL, INPUT);
   // pinMode(PIN_TRIG_objectTF, OUTPUT);
   // pinMode(PIN_ECHO_objectTF, INPUT);
-  // pinMode(PIN_TRIG_objectTFR, OUTPUT);
-  // pinMode(PIN_ECHO_objectTFR, INPUT);
-  // pinMode(PIN_TRIG_objectTFL, OUTPUT);
-  // pinMode(PIN_ECHO_objectTFL, INPUT);
-  // pinMode(PIN_TRIG_objectB, OUTPUT);
-  // pinMode(PIN_ECHO_objectB, INPUT);
+  // EXT2.pinMode(PIN_EXT_TRIG_objectTFR, OUTPUT);
+  // EXT2.pinMode(PIN_EXT_ECHO_objectTFR, INPUT);
+  // EXT2.pinMode(PIN_EXT_TRIG_objectTFL, OUTPUT);
+  // EXT2.pinMode(PIN_EXT_ECHO_objectTFL, INPUT);
+  pinMode(PIN_EXT_TRIG_objectB, OUTPUT);
+  pinMode(PIN_EXT_ECHO_objectB, INPUT);
 
   // Flame IR Sensors - - - - - - - -
-  pcf8574.pinMode(PIN_EXT_flameF, INPUT);
-  pcf8574.pinMode(PIN_EXT_flameML, INPUT);
-  pcf8574.pinMode(PIN_EXT_flameMR, INPUT);
-  pcf8574.pinMode(PIN_EXT_flameL, INPUT);
-  pcf8574.pinMode(PIN_EXT_flameR, INPUT);
+  EXT1.pinMode(PIN_EXT_flameF, INPUT);
+  EXT1.pinMode(PIN_EXT_flameML, INPUT);
+  EXT1.pinMode(PIN_EXT_flameMR, INPUT);
+  EXT1.pinMode(PIN_EXT_flameL, INPUT);
+  EXT1.pinMode(PIN_EXT_flameR, INPUT);
 
   // Flame Fan - - - - - - - - - - - - 
-  pcf8574.pinMode(PIN_EXT_fan, OUTPUT);
+  EXT1.pinMode(PIN_EXT_fan, OUTPUT);
   
   // Initialize IO Extender
-  if (pcf8574.begin()) {
+  if (EXT1.begin()) {
     Serial.println("OK");
   } else {
     Serial.println("KO");
   }
 
-  pcf8574.digitalWrite(PIN_EXT_fan, LOW);
+  // if (EXT2.begin()) {
+  //   Serial.println("OK");
+  // } else {
+  //   Serial.println("KO");
+  // }
+
+  EXT1.digitalWrite(PIN_EXT_fan, LOW);
 }
 
 void loop () {
@@ -150,22 +158,22 @@ void loop () {
   unsigned long tempTime;
 
   // Flame Detection Sensors --------------------- (NOT USED )
-  // int FIRE_outputML = pcf8574.digitalRead(PIN_EXT_flameML);
-  // int FIRE_outputMR = pcf8574.digitalRead(PIN_EXT_flameMR);
-  // int FIRE_outputL = pcf8574.digitalRead(PIN_EXT_flameL);
-  // int FIRE_outputR = pcf8574.digitalRead(PIN_EXT_flameR);
-  // int FIRE_outputF = pcf8574.digitalRead(PIN_EXT_flameF);
+  // int FIRE_outputML = EXT1.digitalRead(PIN_EXT_flameML);
+  // int FIRE_outputMR = EXT1.digitalRead(PIN_EXT_flameMR);
+  // int FIRE_outputL = EXT1.digitalRead(PIN_EXT_flameL);
+  // int FIRE_outputR = EXT1.digitalRead(PIN_EXT_flameR);
+  // int FIRE_outputF = EXT1.digitalRead(PIN_EXT_flameF);
   // FireSensorOutputs(FIRE_outputMR,FIRE_outputML,FIRE_outputF,FIRE_outputR, FIRE_outputL);
-  Serial.print("IR FIRE MIDDLE ----: ");
-  Serial.println(pcf8574.digitalRead(PIN_EXT_flameF));  
-  Serial.print("IR FIRE MIDDLE RIGHT --------: ");
-  Serial.println(pcf8574.digitalRead(PIN_EXT_flameMR));  
-  Serial.print("IR FIRE MIDDLE LEFT --------: ");
-  Serial.println(pcf8574.digitalRead(PIN_EXT_flameML)); 
-  Serial.print("IR FIRE RIGHT --------: ");
-  Serial.println(pcf8574.digitalRead(PIN_EXT_flameR));  
-  Serial.print("IR FIRE LEFT --------: ");
-  Serial.println(pcf8574.digitalRead(PIN_EXT_flameL)); 
+  // Serial.print("IR FIRE MIDDLE ----: ");
+  // Serial.println(EXT1.digitalRead(PIN_EXT_flameF));  
+  // Serial.print("IR FIRE MIDDLE RIGHT --------: ");
+  // Serial.println(EXT1.digitalRead(PIN_EXT_flameMR));  
+  // Serial.print("IR FIRE MIDDLE LEFT --------: ");
+  // Serial.println(EXT1.digitalRead(PIN_EXT_flameML)); 
+  // Serial.print("IR FIRE RIGHT --------: ");
+  // Serial.println(EXT1.digitalRead(PIN_EXT_flameR));  
+  // Serial.print("IR FIRE LEFT --------: ");
+  // Serial.println(EXT1.digitalRead(PIN_EXT_flameL)); 
 
   // Object Avoidance Sensors --------------------
   OBJECT_outputR = OBJECT_sonarR.ping_cm();
@@ -174,22 +182,23 @@ void loop () {
   // OBJECT_outputTR = OBJECT_sonarTR.ping_cm();
   // OBJECT_outputTL = OBJECT_sonarTL.ping_cm();
   // OBJECT_outputTF = OBJECT_sonarTF.ping_cm();
-  // OBJECT_outputB = OBJECT_sonarB.ping_cm();
+  OBJECT_outputB = OBJECT_sonarB.ping_cm();
 
-  // Serial.print("Distance Front ----: ");
-  // Serial.println(OBJECT_outputF);  
-  // Serial.print("Distance Front Right----: ");
-  // Serial.println(OBJECT_outputR);  
-  // Serial.print("Distance Front Left----: ");
-  // Serial.println(OBJECT_outputL); 
+  Serial.print("Distance Front ----: ");
+  Serial.println(OBJECT_outputF);  
+  Serial.print("Distance Front Right----: ");
+  Serial.println(OBJECT_outputR);  
+  Serial.print("Distance Front Left----: ");
+  Serial.println(OBJECT_outputL); 
   // Serial.print("Distance TOP Front ----: ");
   // Serial.println(OBJECT_outputTF);  
+
   // Serial.print("Distance TOP Front Right----: ");
   // Serial.println(OBJECT_outputTR);  
   // Serial.print("Distance TOP Front Left----: ");
   // Serial.println(OBJECT_outputTL);   
-   // Serial.print("Distance BACK Front Left----: ");
-  // Serial.println(OBJECT_outputB); 
+   Serial.print("Distance BACK----: ");
+  Serial.println(OBJECT_outputB); 
   // ObjectSensorOutputs(OBJECT_outputR,OBJECT_outputL,OBJECT_outputF); //// OBJECT_outputTR, OBJECT_outputTL OBJECT_outputTF,OBJECT_outputB
   
   // Line Following --------------------
@@ -214,19 +223,21 @@ void loop () {
     ObjectAvoidanceMode();
     FLAG_objectL=true;
   }
-  // else if (OBJECT_outputB <= 0 && OBJECT_outputB !=0){
-  //   //TURN AROUND
+  // else if (OBJECT_outputB <= 10 && OBJECT_outputB !=0){
+  //   operationStartTime=millis();
+  //   ObjectAvoidanceMode();
+  //   FLAG_objectB=true;
   // }
   // Flame Detection (HIGH = detected) -------------------------
-  else if (pcf8574.digitalRead(PIN_EXT_flameF) == HIGH) { 
+  else if (EXT1.digitalRead(PIN_EXT_flameF) == HIGH) { 
     operationStartTime=millis();
     FireDetectionMode();
     FLAG_fireF = true;
-  }  else if ((pcf8574.digitalRead(PIN_EXT_flameMR) == HIGH) || (pcf8574.digitalRead(PIN_EXT_flameR) == HIGH)) { // (pcf8574.digitalRead(PIN_EXT_flameMR) == HIGH) || (pcf8574.digitalRead(PIN_EXT_flameR) == HIGH)
+  }  else if ((EXT1.digitalRead(PIN_EXT_flameMR) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameR) == HIGH)) { // (EXT1.digitalRead(PIN_EXT_flameMR) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameR) == HIGH)
     operationStartTime=millis();
     FireDetectionMode();
     FLAG_fireR = true;
-  }  else if ((pcf8574.digitalRead(PIN_EXT_flameML) == HIGH) || (pcf8574.digitalRead(PIN_EXT_flameL) == HIGH)) {//(pcf8574.digitalRead(PIN_EXT_flameML) == HIGH) || (pcf8574.digitalRead(PIN_EXT_flameL) == HIGH)
+  }  else if ((EXT1.digitalRead(PIN_EXT_flameML) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameL) == HIGH)) {//(EXT1.digitalRead(PIN_EXT_flameML) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameL) == HIGH)
     operationStartTime=millis();
     FireDetectionMode();
     FLAG_fireL = true;
@@ -234,7 +245,7 @@ void loop () {
 
   // Line Following --------------------
   else if (LINE_outputF && !LINE_outputR && !LINE_outputL) {
-    Forward();
+   // Forward();
     FLAG_lineF = true;
   }
   else if (LINE_outputF && LINE_outputR && LINE_outputL || LINE_outputF && LINE_outputL || LINE_outputL) {
@@ -246,7 +257,7 @@ void loop () {
     FLAG_lineR = true;
   }
 
-  FlagOutputs(FLAG_objectDetection,FLAG_fireDetection,FLAG_lineDetection,FLAG_lineL,FLAG_lineR);
+  FlagOutputs(FLAG_objectDetection,FLAG_fireDetection,FLAG_lineF,FLAG_lineL,FLAG_lineR);
 
   // Object Detection Flags -------
   if (FLAG_objectDetection){
@@ -283,9 +294,17 @@ void loop () {
         }
       }
     }
-    // if (FLAG_objectB){
-
-    // }
+    if (FLAG_objectB){
+      tempTime = millis();
+      if (tempTime >= operationStartTime + OFFSET) {
+        if (OBJECT_outputB <= 10 && OBJECT_outputB != 0) { // OBJECT_outputL <= 13 && OBJECT_outputL != 0) || OBJECT_outputTL <= 13 && OBJECT_outputTL != 0)
+          Right();
+        } else{
+          FLAG_objectB=false;
+          FLAG_objectDetection=false;
+        }
+      }
+    }
   }
 
   // Flame Detection Flags
@@ -293,7 +312,7 @@ void loop () {
     if (FLAG_fireF){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if (pcf8574.digitalRead(PIN_EXT_flameF)==HIGH) {
+        if (EXT1.digitalRead(PIN_EXT_flameF)==HIGH) {
           Stop();
           // this might be the issue to the turning problem
           //delay(500);
@@ -307,19 +326,19 @@ void loop () {
           // FLAG_objectDetection = true;
           // ObjectAvoidanceMode();
           
-          Serial.print("FIRE LEFT IR ----: ");
-          Serial.println(pcf8574.digitalRead(PIN_EXT_flameML));  
-          Serial.print("FIRE RIGHT IR ----: ");
-          Serial.println(pcf8574.digitalRead(PIN_EXT_flameMR));  
-          Serial.print("FIRE MIDDLE IR ----: ");
-          Serial.println(pcf8574.digitalRead(PIN_EXT_flameF));  
+          // Serial.print("FIRE LEFT IR ----: ");
+          // Serial.println(EXT1.digitalRead(PIN_EXT_flameML));  
+          // Serial.print("FIRE RIGHT IR ----: ");
+          // Serial.println(EXT1.digitalRead(PIN_EXT_flameMR));  
+          // Serial.print("FIRE MIDDLE IR ----: ");
+          // Serial.println(EXT1.digitalRead(PIN_EXT_flameF));  
         }
       }
     }
     if (FLAG_fireL){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if (pcf8574.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { 
+        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { 
           FlameLeft(); }
         else { 
           FLAG_fireL = false; 
@@ -330,7 +349,7 @@ void loop () {
     if (FLAG_fireR){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if (pcf8574.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { FlameRight(); }
+        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { FlameRight(); }
         else { 
           FLAG_fireR = false; 
           FLAG_fireDetection = false;
@@ -348,9 +367,11 @@ void loop () {
           digitalRead(PIN_lineF) == LOW && 
           tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) { 
             SlightLeft(); 
+            Serial.println("hihihihi left");
         } 
         else {
           FLAG_lineL = false; 
+          Serial.println("I GAVE UP LEFT");
         }
       }
     }
@@ -361,8 +382,10 @@ void loop () {
           digitalRead(PIN_lineF) == LOW && 
           tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) { 
             SlightRight(); 
+            Serial.println("hihihihi right"); 
         } 
         else {
+          Serial.println("I GAVE UP RIGHT");
           FLAG_lineR = false; 
         }
       }
@@ -370,9 +393,10 @@ void loop () {
     if (FLAG_lineF) {
       if (digitalRead(PIN_lineF) == HIGH) { 
         Forward();
+        Serial.println("hihihihi"); 
       } else {
         FLAG_lineF = false;
-         Serial.println("hihihihi"); 
+        
       }
     }
   } 
@@ -446,7 +470,7 @@ void FlagOutputs(bool object,bool fire,bool line,bool lineL,bool lineR){
   Serial.println(object);
   Serial.print("fire detection--------:");
   Serial.println(fire);
-  Serial.print("line detection --------:");
+  Serial.print("line detection middle --------:");
   Serial.println(line);
   Serial.print("line detection right--------:");
   Serial.println(lineR);
@@ -455,11 +479,11 @@ void FlagOutputs(bool object,bool fire,bool line,bool lineL,bool lineR){
 }
 
 void FanOn () {
-  pcf8574.digitalWrite(PIN_EXT_fan, HIGH);
+  EXT1.digitalWrite(PIN_EXT_fan, HIGH);
 }
 
 void FanOff () {
-  pcf8574.digitalWrite(PIN_EXT_fan, LOW);
+  EXT1.digitalWrite(PIN_EXT_fan, LOW);
 }
 
 void Right () {
@@ -481,7 +505,7 @@ void FlameRight () {
 void SlightRight () {
   analogWrite(PWMAR, low); // Right wheels stop
   analogWrite(PWMBR, low); 
-  analogWrite(PWMAL, turnHigh);  // Left wheels forward
+  analogWrite(PWMAL, turnLow);  // Left wheels forward
   analogWrite(PWMBL, low); 
   digitalWrite (STBY, HIGH);
 }
@@ -504,7 +528,7 @@ void FlameLeft () {
 
 void SlightLeft () {
   analogWrite(PWMAR, low); // Right wheels forward
-  analogWrite(PWMBR, turnHigh); 
+  analogWrite(PWMBR, turnLow); 
   analogWrite(PWMAL, low);  // Left wheels stop
   analogWrite(PWMBL, low); 
   digitalWrite (STBY, HIGH);
