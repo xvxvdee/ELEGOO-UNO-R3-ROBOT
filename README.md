@@ -14,7 +14,7 @@ To-do:
   * [x] Attach fan (DC Motor + Propellor)
   * [x] Code logic for the fan (ON when middle == LOW, OFF when middle == HIGH) 
   * [x] Add ```maxFlameTurnDuration``` to prevent infinite donuts in flame detection mode
-  * [ ] Fix turning problem / wheel problem
+  * [x] Fix turning problem / wheel problem
 * [ ] Defense Mechanism
   * [ ] Add space in the back of the chassis for our candle
-  * [ ] Figure out a defense mechanism to prevent getting eliminated by other AMRs
+  * [x] Figure out a defense mechanism to prevent getting eliminated by other AMRs
