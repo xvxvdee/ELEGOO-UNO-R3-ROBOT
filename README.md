@@ -15,4 +15,5 @@ To-do:
   * [x] Fix turning problem / wheel problem
 * [ ] Defense Mechanism
   * [ ] Add space in the back of the chassis for our candle
-  * [x] Figure out a defense mechanism to prevent getting eliminated by other AMRs
+  * [x] Add back ultrasonic sensor to prevent getting eliminated by other AMRs
+        
