@@ -5,7 +5,7 @@
 int MAX_LINE_TURN_DURATION = 3000;
 int MAX_FLAME_TURN_DURATION = 3000;
 
-int OFFSET = 1;
+long OFFSET = 1;
 
 // AMR ---------------------------------------------------
 int STBY=3; // Standby Power System (must be high to enable Motor Control Board)
@@ -17,7 +17,7 @@ int PWMBL=6; // Left motors B pin
 // Turning Speed
 int high = 125;
 int turnHigh = 130;
-int turnLow = 110;
+int turnLow = 115;
 int low = 0;
 
 // PINS -------------------------------------------------------------------------
@@ -25,10 +25,6 @@ int low = 0;
 #define PIN_lineL 7
 #define PIN_lineF 13
 #define PIN_lineR 2
-// //IR Sensors  
-// #define LINE_outputL 
-// #define LINE_outputF
-// #define LINE_outputR
 
 // Flame IR Sensors - - - - - - - - - - - - - -
 uint8_t PIN_EXT_flameML = P1;
@@ -42,7 +38,7 @@ uint8_t PIN_EXT_fan = P4;
 
 // IO Extender - - - - - - - - - - - - - - - - - 
 PCF8574 EXT1(0x20);
-PCF8574 EXT2(0x21);
+PCF8574 EXT2(0x24);
 
 // Ultrasonic Sensors Trig and Echo Pins - - - - 
 int PIN_TRIG_objectF = 3; // Trig pin of Front Ultrasonic Sensor to pin 3 
@@ -52,13 +48,13 @@ int PIN_ECHO_objectFR = A0; // Trig pin of Front Right Ultrasonic Sensor to pin 
 int PIN_TRIG_objectFL = A3; // Echo pin of Front Left Ultrasonic Sensor to pin A3 
 int PIN_ECHO_objectFL = A2; // Trig pin of Front Left Ultrasonic Sensor to pin A2
 
-int PIN_EXT_TRIG_objectB = 11; //// Back Sensor
-int PIN_EXT_ECHO_objectB = 12; 
+int PIN_TRIG_objectB = 11; //// Back Sensor
+int PIN_ECHO_objectB = 12; 
 
 // IR Sensors for Edge Detection - - - - - -
-int PIN_objectTF = 0;
-int PIN_objectTL = 0;
-int PIN_objectTR = 0;
+uint8_t PIN_EXT_objectTF = P1;
+uint8_t PIN_EXT_objectTL = P2;
+uint8_t PIN_EXT_objectTR = P3;
 
 long  OBJECT_outputF,OBJECT_outputTF,OBJECT_outputR,OBJECT_outputTR, OBJECT_outputL, OBJECT_outputTL,OBJECT_outputB; //Ultrasonic sensors + IR Sensors
 
@@ -83,10 +79,7 @@ bool FLAG_lineF = false;
 NewPing OBJECT_sonarL(PIN_TRIG_objectFL, PIN_ECHO_objectFL, MAX_DISTANCE);
 NewPing OBJECT_sonarR(PIN_TRIG_objectFR, PIN_ECHO_objectFR, MAX_DISTANCE);
 NewPing OBJECT_sonarF(PIN_TRIG_objectF, PIN_ECHO_objectF, MAX_DISTANCE);
-// NewPing OBJECT_sonarTL(PIN_EXT_TRIG_objectTFL, PIN_EXT_ECHO_objectTFL, MAX_DISTANCE);
-// NewPing OBJECT_sonarTR(PIN_EXT_TRIG_objectTFR, PIN_EXT_ECHO_objectTFR, MAX_DISTANCE);
-// NewPing OBJECT_sonarTF(PIN_TRIG_objectTF, PIN_ECHO_objectTF, MAX_DISTANCE);
-NewPing OBJECT_sonarB(PIN_EXT_TRIG_objectB, PIN_EXT_ECHO_objectB, MAX_DISTANCE); 
+NewPing OBJECT_sonarB(PIN_TRIG_objectB, PIN_ECHO_objectB, MAX_DISTANCE); 
 
 void setup () {
   Serial.begin(9600); // Initialize the serial communications
@@ -110,13 +103,13 @@ void setup () {
   pinMode(PIN_ECHO_objectFR, INPUT);
   pinMode(PIN_TRIG_objectFL, OUTPUT);
   pinMode(PIN_ECHO_objectFL, INPUT);
-  pinMode(PIN_EXT_TRIG_objectB, OUTPUT);
-  pinMode(PIN_EXT_ECHO_objectB, INPUT);
+  pinMode(PIN_TRIG_objectB, OUTPUT);
+  pinMode(PIN_ECHO_objectB, INPUT);
 
   // IR Sensors
-  pinMode(PIN_objectTF, INPUT);
-  pinMode(PIN_objectTL, INPUT);
-  pinMode(PIN_objectTR, INPUT);
+  EXT2.pinMode(PIN_EXT_objectTF, INPUT);
+  EXT2.pinMode(PIN_EXT_objectTL, INPUT);
+  EXT2.pinMode(PIN_EXT_objectTR, INPUT);
 
   // Flame IR Sensors - - - - - - - -
   EXT1.pinMode(PIN_EXT_flameF, INPUT);
@@ -130,16 +123,16 @@ void setup () {
   
   // Initialize IO Extender
   if (EXT1.begin()) {
-    Serial.println("OK");
+    Serial.println("OK 1");
   } else {
-    Serial.println("KO");
+    Serial.println("KO 1");
   }
 
-  // if (EXT2.begin()) {
-  //   Serial.println("OK");
-  // } else {
-  //   Serial.println("KO");
-  // }
+  if (EXT2.begin()) {
+    Serial.println("OK 2");
+  } else {
+    Serial.println("KO 2");
+  }
 
   EXT1.digitalWrite(PIN_EXT_fan, LOW);
 }
@@ -167,49 +160,63 @@ void loop () {
   OBJECT_outputF = OBJECT_sonarF.ping_cm();
   OBJECT_outputB = OBJECT_sonarB.ping_cm();
 
-  OBJECT_outputTF = digitalRead(PIN_objectTF);
-  OBJECT_outputTL = digitalRead(PIN_objectTL);
-  OBJECT_outputTR = digitalRead(PIN_objectTR);
+  OBJECT_outputTF = EXT2.digitalRead(PIN_EXT_objectTF); // LOW = DETECTED
+  OBJECT_outputTL = EXT2.digitalRead(PIN_EXT_objectTL);
+  OBJECT_outputTR = EXT2.digitalRead(PIN_EXT_objectTR);
 
-  // Serial.print("Distance Front ----: ");
-  // Serial.println(OBJECT_outputF);  
-  // Serial.print("Distance Front Right----: ");
-  // Serial.println(OBJECT_outputR);  
-  // Serial.print("Distance Front Left----: ");
-  // Serial.println(OBJECT_outputL); 
+  Serial.print("Distance Front ----: ");
+  Serial.println(OBJECT_outputF);  
+  Serial.print("Distance Front Right----: ");
+  Serial.println(OBJECT_outputR);  
+  Serial.print("Distance Front Left----: ");
+  Serial.println(OBJECT_outputL); 
   // Serial.print("Distance BACK----: ");
   // Serial.println(OBJECT_outputB); 
   // Serial.print("IR Object Detected Top Front --------:");
-  // Serial.println(OBJECT_outputTF);
+  // Serial.println(EXT2.digitalRead(PIN_EXT_objectTF));
   // Serial.print("IR Object Detected Top Left --------:");
-  // Serial.println(OBJECT_outputTL);
+  // Serial.println(EXT2.digitalRead(PIN_EXT_objectTL));
   // Serial.print("IR Object Detected Top Right --------:");
-  // Serial.println(OBJECT_outputTR);
-  ObjectSensorOutputs(OBJECT_outputR,OBJECT_outputL,OBJECT_outputF,OBJECT_outputB,OBJECT_outputTF,OBJECT_outputTL,OBJECT_outputTR); 
+  // Serial.println(EXT2.digitalRead(PIN_EXT_objectTR));
+  //ObjectSensorOutputs(OBJECT_outputR,OBJECT_outputL,OBJECT_outputF,OBJECT_outputB,OBJECT_outputTF,OBJECT_outputTR,OBJECT_outputTL); 
   
   // Line Following --------------------
   int LINE_outputL = digitalRead(PIN_lineL); 
   int LINE_outputF = digitalRead(PIN_lineF); 
   int LINE_outputR = digitalRead(PIN_lineR);
-  // LineSensorOutputs(LINE_outputR,LINE_outputL,LINE_outputF);
+  LineSensorOutputs(LINE_outputR,LINE_outputL,LINE_outputF);
 
+  // Flame Detection (HIGH = detected) -------------------------
+   if (EXT1.digitalRead(PIN_EXT_flameF) == HIGH) { 
+    operationStartTime=millis();
+    FireDetectionMode();
+    FLAG_fireF = true;
+  }  else if ((EXT1.digitalRead(PIN_EXT_flameMR) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameR) == HIGH)) { 
+    operationStartTime=millis();
+    FireDetectionMode();
+    FLAG_fireR = true;
+  }  else if ((EXT1.digitalRead(PIN_EXT_flameML) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameL) == HIGH)) {
+    operationStartTime=millis();
+    FireDetectionMode();
+    FLAG_fireL = true;
+  }
   // Object Avoidance ----------------------------------------
-  if (OBJECT_outputF <= 10 && OBJECT_outputF != 0) { 
+  else if (OBJECT_outputF <= 10 && OBJECT_outputF != 0) { 
     operationStartTime=millis();
     ObjectAvoidanceMode();
     FLAG_objectF=true;
   } 
-  else if (OBJECT_outputTF == HIGH){
+  else if (EXT2.digitalRead(PIN_EXT_objectTF) == LOW){
     operationStartTime=millis();
     ObjectAvoidanceMode();
     FLAG_objectF=true;
   }
-  else if ((OBJECT_outputR <= 10 && OBJECT_outputR != 0) || (OBJECT_outputTR == HIGH)) {
+  else if ((OBJECT_outputR <= 10 && OBJECT_outputR != 0) || (EXT2.digitalRead(PIN_EXT_objectTR) == LOW)) {
     operationStartTime=millis();
     ObjectAvoidanceMode();
     FLAG_objectR=true;
   } 
-  else if ((OBJECT_outputL <= 10 && OBJECT_outputL != 0) || (OBJECT_outputTL == HIGH)) { 
+  else if ((OBJECT_outputL <= 10 && OBJECT_outputL != 0) || (EXT2.digitalRead(PIN_EXT_objectTL) == LOW)) { 
     operationStartTime=millis();
     ObjectAvoidanceMode();
     FLAG_objectL=true;
@@ -219,24 +226,9 @@ void loop () {
     ObjectAvoidanceMode();
     FLAG_objectB=true;
   }
-  // Flame Detection (HIGH = detected) -------------------------
-  else if (EXT1.digitalRead(PIN_EXT_flameF) == HIGH) { 
-    operationStartTime=millis();
-    FireDetectionMode();
-    FLAG_fireF = true;
-  }  else if ((EXT1.digitalRead(PIN_EXT_flameMR) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameR) == HIGH)) { // (EXT1.digitalRead(PIN_EXT_flameMR) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameR) == HIGH)
-    operationStartTime=millis();
-    FireDetectionMode();
-    FLAG_fireR = true;
-  }  else if ((EXT1.digitalRead(PIN_EXT_flameML) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameL) == HIGH)) {//(EXT1.digitalRead(PIN_EXT_flameML) == HIGH) || (EXT1.digitalRead(PIN_EXT_flameL) == HIGH)
-    operationStartTime=millis();
-    FireDetectionMode();
-    FLAG_fireL = true;
-  }
 
   // Line Following --------------------
-  else if (LINE_outputF && !LINE_outputR && !LINE_outputL) {
-   // Forward();
+   else if (LINE_outputF && !LINE_outputR && !LINE_outputL) {
     FLAG_lineF = true;
   }
   else if (LINE_outputF && LINE_outputR && LINE_outputL || LINE_outputF && LINE_outputL || LINE_outputL) {
@@ -247,7 +239,6 @@ void loop () {
     operationStartTime=millis();
     FLAG_lineR = true;
   }
-
   FlagOutputs(FLAG_objectDetection,FLAG_fireDetection,FLAG_lineF,FLAG_lineL,FLAG_lineR);
 
   // Object Detection Flags ---------
@@ -257,9 +248,9 @@ void loop () {
       if (tempTime >= operationStartTime + OFFSET) {
         if (OBJECT_outputF <= 15 && OBJECT_outputF != 0) { 
           Right();
-        } else if (digitalRead(PIN_objectTF) == HIGH){
+        } else if (EXT2.digitalRead(PIN_EXT_objectTF) == LOW) {
           Left();
-        }else{
+        } else {
           FLAG_objectF=false;
           FLAG_objectDetection=false;
         }
@@ -268,9 +259,9 @@ void loop () {
     if (FLAG_objectR){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if ((OBJECT_outputR <= 13 && OBJECT_outputR != 0)||(digitalRead(PIN_objectTR) == HIGH)) { 
+        if ((OBJECT_outputR <= 13 && OBJECT_outputR != 0)||(EXT2.digitalRead(PIN_EXT_objectTR) == LOW)) { 
           Left();
-        } else{
+        } else {
           FLAG_objectR=false;
           FLAG_objectDetection=false;
         }
@@ -279,9 +270,9 @@ void loop () {
     if (FLAG_objectL){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if ((OBJECT_outputL <= 13 && OBJECT_outputL != 0)||(digitalRead(PIN_objectTL) == HIGH)) { 
+        if ((OBJECT_outputL <= 13 && OBJECT_outputL != 0)||(EXT2.digitalRead(PIN_EXT_objectTL) == LOW)) { 
           Right();
-        } else{
+        } else {
           FLAG_objectL=false;
           FLAG_objectDetection=false;
         }
@@ -318,7 +309,8 @@ void loop () {
     if (FLAG_fireL){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { 
+        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && 
+          tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { 
           FlameLeft(); }
         else { 
           FLAG_fireL = false; 
@@ -329,7 +321,10 @@ void loop () {
     if (FLAG_fireR){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
-        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { FlameRight(); }
+        if (EXT1.digitalRead(PIN_EXT_flameF)==LOW && 
+          tempTime <= operationStartTime + MAX_FLAME_TURN_DURATION) { 
+          FlameRight(); 
+        }
         else { 
           FLAG_fireR = false; 
           FLAG_fireDetection = false;
@@ -338,20 +333,18 @@ void loop () {
     }
   }
 
-  // Line Following Flags (Turn until middle) -------
+  // Line Following Flags -----------------------------
   else if (!FLAG_objectDetection && !FLAG_fireDetection && (FLAG_lineF || FLAG_lineL || FLAG_lineR)) {
     if (FLAG_lineL){
       tempTime = millis();
       if (tempTime >= operationStartTime + OFFSET) {
         if (
           digitalRead(PIN_lineF) == LOW && 
-          tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) { 
-            SlightLeft(); 
-            //Serial.println("hihihihi left");
+          tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) {  //&&  digitalRead(PIN_lineR) == HIGH
+          SlightLeft(); 
         } 
         else {
           FLAG_lineL = false; 
-          //Serial.println("I GAVE UP LEFT");
         }
       }
     }
@@ -360,12 +353,10 @@ void loop () {
       if (tempTime >= operationStartTime + OFFSET) {
         if (
           digitalRead(PIN_lineF) == LOW && 
-          tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) { 
+          tempTime <= operationStartTime + MAX_LINE_TURN_DURATION ) {  //&&  digitalRead(PIN_lineL) == HIGH
             SlightRight(); 
-           // Serial.println("hihihihi right"); 
         } 
         else {
-          //Serial.println("I GAVE UP RIGHT");
           FLAG_lineR = false; 
         }
       }
@@ -373,14 +364,12 @@ void loop () {
     if (FLAG_lineF) {
       if (digitalRead(PIN_lineF) == HIGH) { 
         Forward();
-       // Serial.println("hihihihi"); 
       } else {
         FLAG_lineF = false;
       }
     }
   } 
   else {
-//Serial.println("DID U REACH THIS?"); 
     Forward();
   }
 
@@ -391,6 +380,7 @@ void ObjectAvoidanceMode () {
   FLAG_objectDetection = true;
   FLAG_lineL = false;
   FLAG_lineR = false;
+  FLAG_lineF = false;
 }
 
 void ObjectSensorOutputs(long R, long L,long F, long B, int TF, int TL, int TR){ 
@@ -415,6 +405,7 @@ void FireDetectionMode () {
   FLAG_fireDetection = true;
   FLAG_lineL = false;
   FLAG_lineR = false;
+  FLAG_lineF = false;
 }
 
 void FireSensorOutputs(PCF8574 EXT, int F, int MR, int ML, int R, int L){ //int R, int L
